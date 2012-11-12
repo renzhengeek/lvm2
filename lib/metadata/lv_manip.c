@@ -1448,6 +1448,9 @@ struct alloc_handle {
 
 	unsigned maximise_cling;
 	unsigned mirror_logs_separate;	/* Force mirror logs on separate PVs? */
+	unsigned mirror_legs_separate;	/* Force mirror *legs* on separate PVs*/
+
+	const struct segment_type *segtype;
 
 	/*
 	 * RAID devices require a metadata area that accompanies each
@@ -2550,6 +2553,32 @@ static int _limit_to_one_area_per_tag(struct alloc_handle *ah, struct alloc_stat
 }
 
 /*
+ * Return -1 if we don't need check tags, or there aren't any areas in alloc_status
+ * have the same tag with pva, the index otherwise.
+ */
+static int check_areas_separate_tags(struct alloc_handle *ah,
+				     struct alloc_state *alloc_state,
+				     unsigned ix_start,
+				     unsigned ix_end,
+				     struct pv_area *pva)
+{
+	int i;
+
+	if (!segtype_is_mirrored(ah->segtype) ||
+			alloc_state->allocated ||
+			!ah->mirror_legs_separate ||
+			!ah->cling_tag_list_cn)
+		return -1;
+
+	for (i = ix_start; i < ix_end; i++)
+		if(_pvs_have_matching_tag(ah->cling_tag_list_cn,
+					alloc_state->areas[i].pva->map->pv,
+					pva->map->pv))
+			return i;
+	return -1;
+}
+
+/*
  * Returns 1 regardless of whether any space was found, except on error.
  */
 static int _find_some_parallel_space(struct alloc_handle *ah,
@@ -2679,6 +2708,10 @@ static int _find_some_parallel_space(struct alloc_handle *ah,
 					continue;
 
 				case USE_AREA:
+					if(check_areas_separate_tags(ah, alloc_state, ix_offset,
+								     ix + ix_offset, pva) >= 0)
+						goto next_pv;
+
 					/*
 					 * Except with ALLOC_ANYWHERE, replace first area with this
 					 * one which is smaller but still big enough.
@@ -3159,6 +3192,7 @@ static struct alloc_handle *_alloc_init(struct cmd_context *cmd,
 	ah->parity_count = parity_count;
 	ah->region_size = region_size;
 	ah->alloc = alloc;
+	ah->segtype = segtype;
 
 	/*
 	 * For the purposes of allocation, area_count and parity_count are
@@ -3170,6 +3204,7 @@ static struct alloc_handle *_alloc_init(struct cmd_context *cmd,
 	ah->area_multiple = _calc_area_multiple(segtype, area_count + parity_count, stripes);
 	//FIXME: s/mirror_logs_separate/metadata_separate/ so it can be used by others?
 	ah->mirror_logs_separate = find_config_tree_bool(cmd, allocation_mirror_logs_require_separate_pvs_CFG, NULL);
+ 	ah->mirror_legs_separate = find_config_tree_bool(cmd, allocation_mirror_legs_require_separate_pvs_CFG, NULL);
 
 	if (mirrors || stripes)
 		total_extents = new_extents;
