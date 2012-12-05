@@ -2460,6 +2460,25 @@ static uint32_t _calc_required_extents(struct alloc_handle *ah, struct pv_area *
 	return required;
 }
 
+static void _replace_required_area(struct alloc_handle *ah,
+				   uint32_t max_to_allocate,
+				   unsigned ix_pva, struct pv_area *pva,
+				   struct alloc_state *alloc_state,
+				   alloc_policy_t alloc)
+{
+	uint32_t required = _calc_required_extents(ah, pva, ix_pva,
+						   max_to_allocate, alloc);
+
+	/*
+	 * We don't worry about the area replaced, because _clear_areas() and
+	 * _reset_unreserved() called by _find_some_parallel_space() will clear
+	 * the alloc_state and reserved areas every time.
+	 */
+	if (required > alloc_state->areas[ix_pva - 1].used)
+		_reserve_area(ah, alloc_state, pva, required, ix_pva - 1,
+			      pva->unreserved);
+}
+
 static void _clear_areas(struct alloc_state *alloc_state)
 {
 	uint32_t s;
@@ -2588,6 +2607,7 @@ static int _find_some_parallel_space(struct alloc_handle *ah,
 	const struct alloc_parms *alloc_parms = alloc_state->alloc_parms;
 	unsigned ix = 0;
 	unsigned last_ix;
+	int ret;
 	struct pv_map *pvm;
 	struct pv_area *pva;
 	unsigned preferred_count = 0;
@@ -2708,9 +2728,17 @@ static int _find_some_parallel_space(struct alloc_handle *ah,
 					continue;
 
 				case USE_AREA:
-					if(check_areas_separate_tags(ah, alloc_state, ix_offset,
-								     ix + ix_offset, pva) >= 0)
-						goto next_pv;
+					ret = check_areas_separate_tags(ah,
+							alloc_state, ix_offset,
+							ix + ix_offset, pva);
+					if (ret >= 0) {
+						_replace_required_area(ah,
+							max_to_allocate,
+							ret + 1, pva,
+							alloc_state,
+							alloc_parms->alloc);
+						continue;
+					}
 
 					/*
 					 * Except with ALLOC_ANYWHERE, replace first area with this
