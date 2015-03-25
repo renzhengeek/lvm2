@@ -17,15 +17,22 @@ ENV{DM_UDEV_DISABLE_DISK_RULES_FLAG}=="1", GOTO="dm_end"
 SYMLINK+="disk/by-id/dm-name-$env{DM_NAME}", OPTIONS+="string_escape=replace"
 ENV{DM_UUID}=="?*", SYMLINK+="disk/by-id/dm-uuid-$env{DM_UUID}", OPTIONS+="string_escape=replace"
 
-ENV{DM_SUSPENDED}=="1", GOTO="dm_end"
+ENV{DM_SUSPENDED}=="1", GOTO="dm_blkid_end"
 ENV{DM_NR_VALID_PATHS}=="0", GOTO="dm_blkid_end"
 ENV{DM_NOSCAN}=="1", GOTO="dm_watch"
 ENV{DM_TARGET_TYPES}=="|*error*", GOTO="dm_end"
 
 (BLKID_RULE)
 LABEL="dm_blkid_end"
+# For a suspended or otherwise unavailable device we
+# need to import the variables from the database, otherwise
+# a service interruption might occur
+ENV{ID_FS_TYPE}!="?*", IMPORT{db}="ID_FS_TYPE"
+ENV{ID_FS_USAGE}!="?*", IMPORT{db}="ID_FS_USAGE"
+ENV{ID_FS_UUID}!="?*", IMPORT{db}="ID_FS_UUID"
+ENV{ID_FS_UUID_ENC}!="?*", IMPORT{db}="ID_FS_UUID_ENC"
+ENV{ID_FS_VERSION}!="?*", IMPORT{db}="ID_FS_VERSION"
 ENV{DM_UDEV_LOW_PRIORITY_FLAG}=="1", OPTIONS+="link_priority=-100"
-OPTIONS+="watch"
 ENV{DM_TARGET_TYPES}=="*snapshot-origin*", OPTIONS+="link_priority=-90"
 ENV{ID_FS_USAGE}=="filesystem|other|crypto", ENV{ID_FS_UUID_ENC}=="?*", SYMLINK+="disk/by-uuid/$env{ID_FS_UUID_ENC}"
 ENV{ID_FS_USAGE}=="filesystem|other", ENV{ID_FS_LABEL_ENC}=="?*", SYMLINK+="disk/by-label/$env{ID_FS_LABEL_ENC}"
