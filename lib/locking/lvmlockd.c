@@ -1200,7 +1200,7 @@ int lockd_gl_create(struct cmd_context *cmd, const char *def_mode, const char *v
 	}
 
 	if (result == -EAGAIN) {
-		if (retries < find_config_tree_int(cmd, global_lock_retries_CFG, NULL)) {
+		if (retries < find_config_tree_int(cmd, global_lvmlockd_lock_retries_CFG, NULL)) {
 			log_warn("Retrying %s global lock", mode);
 			sleep(1);
 			retries++;
@@ -1461,7 +1461,7 @@ int lockd_gl(struct cmd_context *cmd, const char *def_mode, uint32_t flags)
 	}
 
 	if (result == -EAGAIN) {
-		if (retries < find_config_tree_int(cmd, global_lock_retries_CFG, NULL)) {
+		if (retries < find_config_tree_int(cmd, global_lvmlockd_lock_retries_CFG, NULL)) {
 			log_warn("Retrying %s global lock", mode);
 			sleep(1);
 			retries++;
@@ -1704,7 +1704,7 @@ int lockd_vg(struct cmd_context *cmd, const char *vg_name, const char *def_mode,
 	}
 
 	if (result == -EAGAIN) {
-		if (retries < find_config_tree_int(cmd, global_lock_retries_CFG, NULL)) {
+		if (retries < find_config_tree_int(cmd, global_lvmlockd_lock_retries_CFG, NULL)) {
 			log_warn("Retrying %s lock on VG %s", mode, vg_name);
 			sleep(1);
 			retries++;
