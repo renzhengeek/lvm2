@@ -138,7 +138,7 @@ int wait_for_single_lv(struct cmd_context *cmd, struct poll_operation_id *id,
 	struct volume_group *vg;
 	struct logical_volume *lv;
 	int finished = 0;
-	uint32_t lockd_state;
+	uint32_t lockd_state = 0;
 
 	/* Poll for completion */
 	while (!finished) {
@@ -368,7 +368,7 @@ static int report_progress(struct cmd_context *cmd, struct poll_operation_id *id
 {
 	struct volume_group *vg;
 	struct logical_volume *lv;
-	uint32_t lockd_state;
+	uint32_t lockd_state = 0;
 	int ret;
 
 	/*
