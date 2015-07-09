@@ -144,7 +144,7 @@ static int _lvmetad_pvscan_all_devs(struct cmd_context *cmd, activation_handler 
 static daemon_reply _lvmetad_send(const char *id, ...)
 {
 	va_list ap;
-	daemon_reply repl;
+	daemon_reply repl = { 0 };
 	daemon_request req;
 	unsigned num_rescans = 0;
 	unsigned total_usecs_waited = 0;
