@@ -1218,12 +1218,12 @@ static int _want_registered_device(char *dso_name, char *device_uuid,
 				   struct thread_status *thread)
 {
 	/* If DSO names and device paths are equal. */
-	if (dso_name && device_uuid)
+	if (dso_name && strcmp(dso_name, "-") && device_uuid)
 		return !strcmp(dso_name, thread->dso_data->dso_name) &&
 		    !strcmp(device_uuid, thread->device.uuid);
 
 	/* If DSO names are equal. */
-	if (dso_name)
+	if (dso_name && strcmp(dso_name, "-"))
 		return !strcmp(dso_name, thread->dso_data->dso_name);
 
 	/* If device paths are equal. */
