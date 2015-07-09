@@ -214,7 +214,6 @@ static daemon_reply _lvmetad_send(const char *id, ...)
 	unsigned total_usecs_waited = 0;
 	unsigned max_remaining_sleep_times = 1;
 	unsigned wait_usecs;
-	int r;
 
 retry:
 	req = daemon_request_make(id);
@@ -225,12 +224,8 @@ retry:
 	}
 
 	va_start(ap, id);
-	r = daemon_request_extend_v(req, ap);
+	daemon_request_extend_v(req, ap);
 	va_end(ap);
-	if (!r) {
-		repl.error = ENOMEM;
-		return repl;
-	}
 
 	repl = daemon_send(_lvmetad, req);
 
