@@ -902,7 +902,8 @@ static int vgchange_single(struct cmd_context *cmd, const char *vg_name,
 		{ systemid_ARG, &_vgchange_system_id },
 	};
 
-	if (vg_is_exported(vg)) {
+	if (vg_is_exported(vg) &&
+	    !(arg_is_set(cmd, lockstop_ARG) || arg_is_set(cmd, lockstart_ARG))) {
 		log_error("Volume group \"%s\" is exported", vg_name);
 		return ECMD_FAILED;
 	}
@@ -1066,6 +1067,7 @@ static int _lockd_vgchange(struct cmd_context *cmd, int argc, char **argv)
 
 int vgchange(struct cmd_context *cmd, int argc, char **argv)
 {
+	uint32_t flags = 0;
 	int ret;
 
 	int noupdate =
@@ -1199,8 +1201,12 @@ int vgchange(struct cmd_context *cmd, int argc, char **argv)
 	if (!_lockd_vgchange(cmd, argc, argv))
 		return_ECMD_FAILED;
 
-	ret = process_each_vg(cmd, argc, argv, update ? READ_FOR_UPDATE : 0,
-			      NULL, &vgchange_single);
+	if (update)
+		flags |= READ_FOR_UPDATE;
+	if (arg_is_set(cmd, lockstart_ARG) || arg_is_set(cmd, lockstop_ARG))
+		flags |= READ_ALLOW_EXPORTED;
+
+	ret = process_each_vg(cmd, argc, argv, flags, NULL, &vgchange_single);
 
 	/* Wait for lock-start ops that were initiated in vgchange_lockstart. */
 
