@@ -1802,9 +1802,9 @@ struct cmd_context *create_toolcontext(unsigned is_long_lived,
 	cmd->default_settings.cache_vgmetadata = 1;
 	cmd->current_settings = cmd->default_settings;
 
-	cmd->config_initialized = 1;
+	cmd->initialized.config = 1;
 out:
-	if (!cmd->config_initialized) {
+	if (!cmd->initialized.config) {
 		destroy_toolcontext(cmd);
 		cmd = NULL;
 	}
@@ -1930,7 +1930,7 @@ int refresh_toolcontext(struct cmd_context *cmd)
 
 	_destroy_config(cmd);
 
-	cmd->config_initialized = 0;
+	cmd->initialized.config = 0;
 
 	cmd->hosttags = 0;
 
@@ -2008,7 +2008,7 @@ int refresh_toolcontext(struct cmd_context *cmd)
 	if (!_init_backup(cmd))
 		return_0;
 
-	cmd->config_initialized = 1;
+	cmd->initialized.config = 1;
 
 	reset_lvm_errno(1);
 	return 1;
