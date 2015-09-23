@@ -1,3 +1,7 @@
+News within backported patches
+==============================
+  Fix lvm2-{activation,clvmd,cmirrord,monitor} service to exec before mounting.
+
 Version 2.02.120 - 15th May 2015
 ================================
   Make various adjustments to Makefile compilation flags.
