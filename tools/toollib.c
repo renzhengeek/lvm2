@@ -1912,7 +1912,7 @@ int select_match_pv(struct cmd_context *cmd, struct processing_handle *handle,
 	return 1;
 }
 
-static int _process_vgnameid_list(struct cmd_context *cmd, uint32_t flags,
+static int _process_vgnameid_list(struct cmd_context *cmd, uint32_t read_flags,
 				  struct dm_list *vgnameids_to_process,
 				  struct dm_list *arg_vgnames,
 				  struct dm_list *arg_tags,
@@ -1955,8 +1955,8 @@ static int _process_vgnameid_list(struct cmd_context *cmd, uint32_t flags,
 			continue;
 		}
 
-		vg = vg_read(cmd, vg_name, vg_uuid, flags, lockd_state);
-		if (_ignore_vg(vg, vg_name, arg_vgnames, flags, &skip, &notfound)) {
+		vg = vg_read(cmd, vg_name, vg_uuid, read_flags, lockd_state);
+		if (_ignore_vg(vg, vg_name, arg_vgnames, read_flags, &skip, &notfound)) {
 			stack;
 			ret_max = ECMD_FAILED;
 			goto endvg;
@@ -2022,7 +2022,7 @@ static int _copy_str_to_vgnameid_list(struct cmd_context *cmd, struct dm_list *s
  * Call process_single_vg() for each VG selected by the command line arguments.
  */
 int process_each_vg(struct cmd_context *cmd, int argc, char **argv,
-		    uint32_t flags, struct processing_handle *handle,
+		    uint32_t read_flags, struct processing_handle *handle,
 		    process_single_vg_fn_t process_single_vg)
 {
 	int handle_supplied = handle != NULL;
@@ -2072,6 +2072,9 @@ int process_each_vg(struct cmd_context *cmd, int argc, char **argv,
 		goto out;
 	}
 
+	if (dm_list_empty(&arg_vgnames))
+		read_flags |= READ_OK_NOTFOUND;
+
 	/*
 	 * If we obtained a full list of VGs on the system, we need to work through them all;
 	 * otherwise we can merely work through the VG names provided.
@@ -2088,7 +2091,7 @@ int process_each_vg(struct cmd_context *cmd, int argc, char **argv,
 	    !init_selection_handle(cmd, handle, VGS))
 		goto_out;
 
-	ret = _process_vgnameid_list(cmd, flags, &vgnameids_to_process,
+	ret = _process_vgnameid_list(cmd, read_flags, &vgnameids_to_process,
 				     &arg_vgnames, &arg_tags, handle, process_single_vg);
 out:
 	if (!handle_supplied)
@@ -2364,7 +2367,7 @@ static int _get_arg_lvnames(struct cmd_context *cmd,
 	return ret_max;
 }
 
-static int _process_lv_vgnameid_list(struct cmd_context *cmd, uint32_t flags,
+static int _process_lv_vgnameid_list(struct cmd_context *cmd, uint32_t read_flags,
 				     struct dm_list *vgnameids_to_process,
 				     struct dm_list *arg_vgnames,
 				     struct dm_list *arg_lvnames,
@@ -2431,8 +2434,8 @@ static int _process_lv_vgnameid_list(struct cmd_context *cmd, uint32_t flags,
 			continue;
 		}
 
-		vg = vg_read(cmd, vg_name, vg_uuid, flags, lockd_state);
-		if (_ignore_vg(vg, vg_name, arg_vgnames, flags, &skip, &notfound)) {
+		vg = vg_read(cmd, vg_name, vg_uuid, read_flags, lockd_state);
+		if (_ignore_vg(vg, vg_name, arg_vgnames, read_flags, &skip, &notfound)) {
 			stack;
 			ret_max = ECMD_FAILED;
 			goto endvg;
@@ -2459,7 +2462,7 @@ endvg:
 /*
  * Call process_single_lv() for each LV selected by the command line arguments.
  */
-int process_each_lv(struct cmd_context *cmd, int argc, char **argv, uint32_t flags,
+int process_each_lv(struct cmd_context *cmd, int argc, char **argv, uint32_t read_flags,
 		    struct processing_handle *handle, process_single_lv_fn_t process_single_lv)
 {
 	int handle_supplied = handle != NULL;
@@ -2526,6 +2529,9 @@ int process_each_lv(struct cmd_context *cmd, int argc, char **argv, uint32_t fla
 		goto out;
 	}
 
+	if (dm_list_empty(&arg_vgnames))
+		read_flags |= READ_OK_NOTFOUND;
+
 	/*
 	 * If we obtained a full list of VGs on the system, we need to work through them all;
 	 * otherwise we can merely work through the VG names provided.
@@ -2535,7 +2541,7 @@ int process_each_lv(struct cmd_context *cmd, int argc, char **argv, uint32_t fla
 	else if ((ret = _copy_str_to_vgnameid_list(cmd, &arg_vgnames, &vgnameids_to_process)) != ECMD_PROCESSED)
 		goto_out;
 
-	ret = _process_lv_vgnameid_list(cmd, flags, &vgnameids_to_process, &arg_vgnames, &arg_lvnames,
+	ret = _process_lv_vgnameid_list(cmd, read_flags, &vgnameids_to_process, &arg_vgnames, &arg_lvnames,
 					&arg_tags, handle, process_single_lv);
 out:
 	if (!handle_supplied)
