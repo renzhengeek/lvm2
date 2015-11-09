@@ -985,7 +985,7 @@ static int remove_metadata(lvmetad_state *s, const char *vgid, int update_pvids)
 
 	/* update_pvid_to_vgid will clear/free the pvid_to_vgid hash */
 	if (update_pvids && meta_lookup)
-		(void) _update_pvid_to_vgid(s, meta_lookup, "#orphan", 0);
+		_update_pvid_to_vgid(s, meta_lookup, "#orphan", 0);
 
 	/* free the unmapped data */
 
@@ -1400,7 +1400,7 @@ static int update_metadata(lvmetad_state *s, const char *arg_name, const char *a
 	int retval = 0;
 
 	DEBUGLOG(s, "update_metadata begin arg_vgid %s arg_name %s pvid %s",
-		 arg_vgid, arg_name, pvid ?: "none");
+		 arg_vgid ?: "none", arg_name ?: "none", pvid ?: "none");
 
 	/*
 	 * Begin by figuring out what has changed:
@@ -1431,7 +1431,7 @@ static int update_metadata(lvmetad_state *s, const char *arg_name, const char *a
 	 * A lookup of the name arg was successful in finding arg_vgid_lookup,
 	 * but that resulting vgid doesn't match the arg_vgid.
 	 */
-	if (arg_vgid_lookup && strcmp(arg_vgid_lookup, arg_vgid)) {
+	if (arg_vgid_lookup && arg_vgid && strcmp(arg_vgid_lookup, arg_vgid)) {
 		if (arg_name_lookup) {
 			/*
 			 * This shouldn't happen.
@@ -1472,7 +1472,7 @@ static int update_metadata(lvmetad_state *s, const char *arg_name, const char *a
 	 * A lookup of the vgid arg was successful in finding arg_name_lookup,
 	 * but that resulting name doesn't match the arg_name.
 	 */
-	if (arg_name_lookup && strcmp(arg_name_lookup, arg_name)) {
+	if (arg_name_lookup && arg_name && strcmp(arg_name_lookup, arg_name)) {
 		if (arg_vgid_lookup) {
 			/*
 			 * This shouldn't happen.
@@ -1512,7 +1512,15 @@ static int update_metadata(lvmetad_state *s, const char *arg_name, const char *a
 	 * An existing VG has unchanged name and vgid.
 	 */
 	if (!new_vgid && !new_name) {
-		if (arg_name_lookup && strcmp(arg_name_lookup, arg_name)) {
+		if (!arg_vgid_lookup || !arg_name_lookup) {
+			/* This shouldn't happen. */
+			ERROR(s, "update_metadata arg_vgid %s arg_name %s missing lookups vgid %s name %s",
+			      arg_vgid ?: "none", arg_name ?: "none", arg_vgid_lookup ?: "none", arg_name_lookup ?: "none");
+			needs_repair = 1;
+			goto update;
+		}
+
+		if (strcmp(arg_name_lookup, arg_name)) {
 			/* This shouldn't happen. */
 			ERROR(s, "update_metadata arg_vgid %s arg_name %s mismatch arg_name_lookup %s",
 			      arg_vgid, arg_name, arg_name_lookup);
@@ -1520,7 +1528,7 @@ static int update_metadata(lvmetad_state *s, const char *arg_name, const char *a
 			goto update;
 		}
 
-		if (arg_vgid_lookup && strcmp(arg_vgid_lookup, arg_vgid)) {
+		if (strcmp(arg_vgid_lookup, arg_vgid)) {
 			/*
 			 * This shouldn't usually happen, but could when
 			 * disks are moved (or filters are changed?)
