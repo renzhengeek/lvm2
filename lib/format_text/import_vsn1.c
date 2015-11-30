@@ -968,6 +968,7 @@ static int _read_vgname(const struct format_type *fmt, const struct dm_config_tr
 {
 	const struct dm_config_node *vgn;
 	struct dm_pool *mem = fmt->cmd->mem;
+	const char *str;
 	int old_suppress;
 
 	old_suppress = log_suppress(2);
@@ -999,7 +1000,11 @@ static int _read_vgname(const struct format_type *fmt, const struct dm_config_tr
 		return 0;
 	}
 
-	dm_config_get_str(vgn, "lock_type", &vgsummary->lock_type);
+	if (dm_config_get_str(vgn, "system_id", &str))
+		vgsummary->system_id = dm_pool_strdup(mem, str);
+
+	if (dm_config_get_str(vgn, "lock_type", &str))
+		vgsummary->lock_type = dm_pool_strdup(mem, str);
 
 	return 1;
 }
