@@ -15,4 +15,5 @@ Restart=on-abort
 PIDFile=@LVMETAD_PIDFILE@
 
 [Install]
+Also=lvm2-lvmetad.socket
 WantedBy=sysinit.target
