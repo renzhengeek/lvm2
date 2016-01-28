@@ -111,6 +111,12 @@ struct arg_value_group_list {
 #define ONE_VGNAME_ARG		0x00000010
 /* Command needs a shared lock on a VG; it only reads the VG. */
 #define LOCKD_VG_SH		0x00000020
+/* Command wants to scan for new devices and force labels to be read from them all. */
+#define REQUIRES_FULL_LABEL_SCAN 0x00000080
+/* Command must use all specified arg names and fail if all cannot be used. */
+#define MUST_USE_ALL_ARGS        0x00000100
+/* Command wants to control the device scan for lvmetad itself. */
+#define NO_LVMETAD_AUTOSCAN      0x00000200
  
 /* a register of the lvm commands */
 struct command {
