@@ -2854,6 +2854,13 @@ int vg_write(struct volume_group *vg)
 		return 0;
 	}
 
+	if (lvmcache_found_duplicate_pvs() && vg_has_duplicate_pvs(vg) &&
+	    !find_config_tree_bool(vg->cmd, devices_allow_changes_with_duplicate_pvs_CFG, NULL)) {
+		log_error("Cannot update volume group %s with duplicate PV devices.",
+			  vg->name);
+		return 0;
+	}
+
 	if (vg_has_unknown_segments(vg) && !vg->cmd->handles_unknown_segments) {
 		log_error("Cannot update volume group %s with unknown segments in it!",
 			  vg->name);
@@ -3230,6 +3237,11 @@ static int _check_reappeared_pv(struct volume_group *correct_vg,
 static int _repair_inconsistent_vg(struct volume_group *vg)
 {
 	unsigned saved_handles_missing_pvs = vg->cmd->handles_missing_pvs;
+
+	if (lvmcache_found_duplicate_pvs()) {
+		log_debug_metadata("Skip metadata repair with duplicates.");
+		return 0;
+	}
 
 	vg->cmd->handles_missing_pvs = 1;
 	if (!vg_write(vg)) {
