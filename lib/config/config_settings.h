@@ -389,17 +389,29 @@ cfg(devices_pv_min_size_CFG, "pv_min_size", devices_CFG_SECTION, 0, CFG_TYPE_INT
 
 cfg(devices_issue_discards_CFG, "issue_discards", devices_CFG_SECTION, 0, CFG_TYPE_BOOL, DEFAULT_ISSUE_DISCARDS, vsn(2, 2, 85), NULL, 0, NULL,
 	"Issue discards to PVs that are no longer used by an LV.\n"
-	"Discards are sent to an LV's underlying physical volumes when\n"
-	"the LV is no longer using the physical volumes' space, e.g.\n"
-	"lvremove, lvreduce.  Discards inform the storage that a region\n"
-	"is no longer used.  Storage that supports discards advertise\n"
-	"the protocol-specific way discards should be issued by the\n"
-	"kernel (TRIM, UNMAP, or WRITE SAME with UNMAP bit set).\n"
-	"Not all storage will support or benefit from discards, but SSDs\n"
-	"and thinly provisioned LUNs generally do.  If enabled, discards\n"
-	"will only be issued if both the storage and kernel provide support.\n")
+	"Discards are sent to an LV's underlying physical volumes when the LV\n"
+	"is no longer using the physical volumes' space, e.g. lvremove,\n"
+	"lvreduce. Discards inform the storage that a region is no longer\n"
+	"used. Storage that supports discards advertise the protocol-specific\n"
+	"way discards should be issued by the kernel (TRIM, UNMAP, or\n"
+	"WRITE SAME with UNMAP bit set). Not all storage will support or\n"
+	"benefit from discards, but SSDs and thinly provisioned LUNs\n"
+	"generally do. If enabled, discards will only be issued if both the\n"
+	"storage and kernel provide support.\n")
 
-cfg_array(allocation_cling_tag_list_CFG, "cling_tag_list", allocation_CFG_SECTION, CFG_DEFAULT_COMMENTED, CFG_TYPE_STRING, NULL, vsn(2, 2, 77), NULL, 0, NULL,
+cfg(devices_allow_changes_with_duplicate_pvs_CFG, "allow_changes_with_duplicate_pvs", devices_CFG_SECTION, 0, CFG_TYPE_BOOL, DEFAULT_ALLOW_CHANGES_WITH_DUPLICATE_PVS, vsn(2, 2, 153), NULL, 0, NULL,
+	"Allow VG modification while a PV appears on multiple devices.\n"
+	"When a PV appears on multiple devices, LVM attempts to choose the\n"
+	"best device to use for the PV. If the devices represent the same\n"
+	"underlying storage, the choice has minimal consequence. If the\n"
+	"devices represent different underlying storage, the wrong choice\n"
+	"can result in data loss if the VG is modified. Disabling this\n"
+	"setting is the safest option because it prevents modifying a VG\n"
+	"or activating LVs in it while a PV appears on multiple devices.\n"
+	"Enabling this setting allows the VG to be used as usual even with\n"
+	"uncertain devices.\n")
+
+cfg_array(allocation_cling_tag_list_CFG, "cling_tag_list", allocation_CFG_SECTION, CFG_DEFAULT_UNDEFINED, CFG_TYPE_STRING, NULL, vsn(2, 2, 77), NULL, 0, NULL,
 	"Advise LVM which PVs to use when searching for new space.\n"
 	"When searching for free space to extend an LV, the 'cling'\n"
 	"allocation policy will choose space on the same PVs as the last\n"
