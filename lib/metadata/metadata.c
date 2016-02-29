@@ -1514,7 +1514,8 @@ static int _pvcreate_check(struct cmd_context *cmd, const char *name,
 		filter_refresh_needed = scan_needed = 1;
 
 	if (!dev) {
-		log_error("Device %s not found (or ignored by filtering).", name);
+        log_error("Device %s not found (or ignored by filtering). "
+                "Please run with -vvv option for more details", name);
 		goto out;
 	}
 
