@@ -490,6 +490,8 @@ int dev_open_flags(struct device *dev, int flags, int direct, int quiet)
 			log_sys_debug("open", name);
 		else
 			log_sys_error("open", name);
+
+		dev->flags |= DEV_OPEN_FAILURE;
 		return 0;
 	}
 
@@ -533,6 +535,7 @@ int dev_open_flags(struct device *dev, int flags, int direct, int quiet)
 		       dev->flags & DEV_OPENED_EXCL ? " O_EXCL" : "",
 		       dev->flags & DEV_O_DIRECT ? " O_DIRECT" : "");
 
+	dev->flags &= ~DEV_OPEN_FAILURE;
 	return 1;
 }
 
