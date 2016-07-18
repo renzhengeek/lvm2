@@ -850,6 +850,16 @@ int lv_change_activate(struct cmd_context *cmd, struct logical_volume *lv,
 
 int lv_refresh(struct cmd_context *cmd, struct logical_volume *lv)
 {
+    struct logical_volume *snapshot_lv;
+
+    if (lv_is_merging_origin(lv)) {
+        snapshot_lv = find_snapshot(lv)->lv;
+        if (lv_is_thin_type(snapshot_lv) && !deactivate_lv(cmd, snapshot_lv))
+            log_print_unless_silent("Delaying merge for origin volume %s since "
+                "snapshot volume %s is still active.",
+                    display_lvname(lv), display_lvname(snapshot_lv));
+    }
+
 	if (!cmd->partial_activation && (lv->status & PARTIAL_LV)) {
 		log_error("Refusing refresh of partial LV %s."
 			  " Use '--activationmode partial' to override.",
