@@ -51,13 +51,11 @@ ENV{DM_UDEV_PRIMARY_SOURCE_FLAG}=="1", ENV{DM_ACTIVATION}=="1", GOTO="lvm_scan"
 GOTO="lvm_end"
 
 # MD device:
+# Need to scan on both 'add' and 'change'
 LABEL="next"
 KERNEL!="md[0-9]*", GOTO="next"
-IMPORT{db}="LVM_MD_PV_ACTIVATED"
-ACTION=="add", ENV{LVM_MD_PV_ACTIVATED}=="1", GOTO="lvm_scan"
-ACTION=="change", ENV{LVM_MD_PV_ACTIVATED}!="1", TEST=="md/array_state", ENV{LVM_MD_PV_ACTIVATED}="1", GOTO="lvm_scan"
-ACTION=="add", KERNEL=="md[0-9]*p[0-9]*", GOTO="lvm_scan"
-ENV{LVM_MD_PV_ACTIVATED}!="1", ENV{SYSTEMD_READY}="0"
+ACTION=="add", GOTO="lvm_scan"
+ACTION=="change", GOTO="lvm_scan"
 GOTO="lvm_end"
 
 # Loop device:
