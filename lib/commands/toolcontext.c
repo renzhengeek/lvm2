@@ -1339,6 +1339,7 @@ struct cmd_context *create_toolcontext(unsigned is_long_lived,
 {
 	struct cmd_context *cmd;
 	FILE *new_stream;
+	int flags;
 
 #ifdef M_MMAP_MAX
 	mallopt(M_MMAP_MAX, 0);
@@ -1382,7 +1383,10 @@ struct cmd_context *create_toolcontext(unsigned is_long_lived,
 			goto out;
 		}
 
-		if (is_valid_fd(STDIN_FILENO)) {
+		/* nohup might set stdin O_WRONLY ! */
+		if (is_valid_fd(STDIN_FILENO) &&
+		    ((flags = fcntl(STDIN_FILENO, F_GETFL)) > 0) &&
+		    (flags & O_ACCMODE) != O_WRONLY) {
 			if (!_reopen_stream(stdin, STDIN_FILENO, "r", "stdin", &new_stream))
 				goto_out;
 			stdin = new_stream;
@@ -1392,7 +1396,9 @@ struct cmd_context *create_toolcontext(unsigned is_long_lived,
 			}
 		}
 
-		if (is_valid_fd(STDOUT_FILENO)) {
+		if (is_valid_fd(STDOUT_FILENO) &&
+		    ((flags = fcntl(STDOUT_FILENO, F_GETFL)) > 0) &&
+		    (flags & O_ACCMODE) != O_RDONLY) {
 			if (!_reopen_stream(stdout, STDOUT_FILENO, "w", "stdout", &new_stream))
 				goto_out;
 			stdout = new_stream;
@@ -1653,6 +1659,7 @@ void destroy_toolcontext(struct cmd_context *cmd)
 {
 	struct dm_config_tree *cft_cmdline;
 	FILE *new_stream;
+	int flags;
 
 	if (cmd->dump_filter)
 		persistent_filter_dump(cmd->filter, 1);
@@ -1678,7 +1685,9 @@ void destroy_toolcontext(struct cmd_context *cmd)
 #ifndef VALGRIND_POOL
 	if (cmd->linebuffer) {
 		/* Reset stream buffering to defaults */
-		if (is_valid_fd(STDIN_FILENO)) {
+		if (is_valid_fd(STDIN_FILENO) &&
+		    ((flags = fcntl(STDIN_FILENO, F_GETFL)) > 0) &&
+		    (flags & O_ACCMODE) != O_WRONLY) {
 			if (_reopen_stream(stdin, STDIN_FILENO, "r", "stdin", &new_stream)) {
 				stdin = new_stream;
 				setlinebuf(stdin);
@@ -1686,7 +1695,9 @@ void destroy_toolcontext(struct cmd_context *cmd)
 				cmd->linebuffer = NULL;	/* Leave buffer in place (deliberate leak) */
 		}
 
-		if (is_valid_fd(STDOUT_FILENO)) {
+		if (is_valid_fd(STDOUT_FILENO) &&
+		    ((flags = fcntl(STDOUT_FILENO, F_GETFL)) > 0) &&
+		    (flags & O_ACCMODE) != O_RDONLY) {
 			if (_reopen_stream(stdout, STDOUT_FILENO, "w", "stdout", &new_stream)) {
 				stdout = new_stream;
 				setlinebuf(stdout);
