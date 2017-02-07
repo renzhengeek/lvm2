@@ -366,12 +366,15 @@ static int _add_log(struct dm_pool *mem, struct lv_segment *seg,
 			return 0;
 		}
 	} else {
-		/* If core log, use mirror's UUID and set DM_CORELOG flag */
+		/* If core log, use mirror's (UUID + CORE) and set DM_CORELOG flag */
 		if (!(log_dlid = build_dm_uuid(mem, seg->lv->lvid.s, NULL))) {
 			log_error("Failed to build uuid for mirror LV %s.",
 				  seg->lv->name);
 			return 0;
 		}
+		if (clustered)
+			memcpy(&(log_dlid[strlen(log_dlid)-4]),"CORE",4);
+
 		log_flags |= DM_CORELOG;
 	}
 

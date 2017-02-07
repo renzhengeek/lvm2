@@ -1909,10 +1909,6 @@ int add_mirror_log(struct cmd_context *cmd, struct logical_volume *lv,
 	unsigned old_log_count;
 	int r = 0;
 
-	if (vg_is_clustered(lv->vg) && (log_count > 1)) {
-		log_error("Log type, \"mirrored\", is unavailable to cluster mirrors");
-		return 0;
-	}
 
 	if (dm_list_size(&lv->segments) != 1) {
 		log_error("Multiple-segment mirror is not supported");
@@ -2076,25 +2072,6 @@ int lv_add_mirrors(struct cmd_context *cmd, struct logical_volume *lv,
 		return 0;
 	}
 
-	if (vg_is_clustered(lv->vg)) {
-		/* FIXME: review check of lv_is_active_remotely */
-		/* FIXME: move this test out of this function */
-		/* Skip test for pvmove mirrors, it can use local mirror */
-		if (!(lv->status & (PVMOVE | LOCKED)) &&
-		    !_cluster_mirror_is_available(lv)) {
-			log_error("Shared cluster mirrors are not available.");
-			return 0;
-		}
-
-		/*
-		 * No mirrored logs for cluster mirrors until
-		 * log daemon is multi-threaded.
-		 */
-		if (log_count > 1) {
-			log_error("Log type, \"mirrored\", is unavailable to cluster mirrors");
-			return 0;
-		}
-	}
 
 	/* For corelog mirror, activation code depends on
 	 * the global mirror_in_sync status. As we are adding
