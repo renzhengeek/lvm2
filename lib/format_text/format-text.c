@@ -2317,9 +2317,14 @@ static int _get_config_disk_area(struct cmd_context *cmd,
 		if (!id_write_format(&id, buffer, sizeof(buffer)))
 			log_error("Couldn't find device.");
 		else
-			log_error("Couldn't find device with uuid '%s'.",
-				  buffer);
-
+			if (find_config_tree_bool(cmd, "global/missing_pv_severity",
+						DEFAULT_MISSING_PV_SEVERITY)) {
+				log_error("Couldn't find device with uuid '%s'.",
+						buffer);
+			} else {
+				log_verbose("Couldn't find device with uuid '%s'.",
+						buffer);
+			}
 		return 0;
 	}
 
