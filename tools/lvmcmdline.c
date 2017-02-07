@@ -516,8 +516,8 @@ int major_minor_valid(const struct cmd_context *cmd, const struct format_type *f
 			log_error("Major number outside range 0-255");
 			return 0;
 		}
-		if (minor < 0 || minor > 255) {
-			log_error("Minor number outside range 0-255");
+		if (minor < 0 || minor > 1048575) {
+			log_error("Minor number outside range 0-1048575");
 			return 0;
 		}
 	} else {
