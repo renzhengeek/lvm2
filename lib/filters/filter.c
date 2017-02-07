@@ -13,6 +13,12 @@
  * Inc., 59 Temple Place, Suite 330, Boston, MA  02111-1307  USA
  */
 
+#include <sys/ioctl.h>
+#include <linux/fs.h>
+#undef MAJOR
+#undef MINOR
+#undef MKDEV
+
 #include "lib.h"
 #include "dev-cache.h"
 #include "filter.h"
@@ -111,10 +117,18 @@ static int _passes_lvm_type_device_filter(struct dev_filter *f __attribute__((un
 	}
 
 	/* Check it's accessible */
-	if (!dev_open_readonly_quiet(dev)) {
+	if (!dev_open_flags(dev, O_RDONLY|O_NONBLOCK, 1, 1)) {
 		log_debug("%s: Skipping: open failed", name);
 		return 0;
 	}
+
+	/* Skip cdrom device */
+	#define CDROM_GET_CAPABILITY   0x5331
+	if (ioctl(dev->fd, CDROM_GET_CAPABILITY) >= 0) {
+		log_debug("%s: Skipping: cdrom device", name );
+		goto out;
+	}
+
 
 	/* Check it's not too small */
 	if (!dev_get_size(dev, &size)) {
