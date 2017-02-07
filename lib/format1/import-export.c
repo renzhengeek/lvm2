@@ -104,7 +104,7 @@ int import_pv(const struct format_type *fmt, struct dm_pool *mem,
 			log_error("%s: Couldn't get size.", pv_dev_name(pv));
 			return 0;
 		}
-		log_verbose("Fixing up missing format1 size (%s) "
+		log_debug("Fixing up missing format1 size (%s) "
 			    "for PV %s", display_size(fmt->cmd, pv->size),
 			    pv_dev_name(pv));
 		if (vg) {
