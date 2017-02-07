@@ -15,6 +15,106 @@
 
 #include "tools.h"
 
+static const char *
+pv_follow_if_link (const char *path)
+{
+  int r;
+  int len = 60;
+  char *fpath = NULL;
+  char *npath = NULL;
+  struct stat st;
+
+  r = lstat (path, &st);
+  if (r == -1)
+    return NULL;		//shouldn't happen
+
+  if (S_ISLNK (st.st_mode))
+    {
+      while (1)
+	{
+	  npath = dm_realloc (fpath, sizeof (char) * len);
+	  if (npath == NULL)
+	    {
+	      if (fpath != NULL)
+		dm_free (fpath);
+	      return NULL;
+	    }
+	  fpath = npath;
+
+	  memset (fpath, 0, sizeof (char) * len);
+	  r = readlink (path, fpath, len);
+	  if (r != -1 && fpath[len - 1] == 0)
+	    break;
+	  if (r == -1)
+	    {
+	      dm_free (fpath);
+	      return NULL;
+	    }
+	  else
+	    {
+	      len = len * 2;
+	    }
+	}
+    }
+  else
+    {
+      fpath = dm_strdup (path);
+    }
+  return fpath;
+}
+
+static const char *
+pv_symlink_handle (struct cmd_context *cmd, const char *name, int create)
+{
+  struct physical_volume *pv = NULL;
+  char *pvuuid;
+  char *pvuuid_link;
+  pvuuid_link = dm_malloc (70);
+  if (pvuuid_link == NULL)
+    return NULL;
+  if (!(pv = pv_read (cmd, name, 0, 0)))
+    {
+			goto bad;
+    }
+  pvuuid = dm_malloc (sizeof (char) * 40);
+  if (pvuuid == NULL)
+    {
+			goto bad;
+    }
+  id_write_format (&pv->id, pvuuid, 40);
+
+  snprintf (pvuuid_link, 70, "/dev/disk/by-id/lvm2-pvuuid-%s", pvuuid);
+
+  //we really don't care if it successed or not.
+  if (create)
+    {
+      const char *tname = NULL;
+      int r;
+      tname = pv_follow_if_link (name);
+      if (tname != NULL)
+	{
+	  r = symlink (tname, pvuuid_link);
+	  dm_free (tname);
+	}
+      else
+	{
+	  symlink (name, pvuuid_link);
+	}
+    }
+  else
+    {
+      //pvuuid_link is saved for future unlink
+      //unlink(pvuuid_link);
+    }
+  dm_free (pvuuid);
+	free_pv_fid(pv);
+  return pvuuid_link;
+bad:
+	dm_free (pvuuid_link);
+	free_pv_fid(pv);
+	return NULL;
+}
+
 static int _pvchange_single(struct cmd_context *cmd, struct volume_group *vg,
 			    struct physical_volume *pv,
 			    void *handle __attribute__((unused)))
@@ -130,6 +230,7 @@ static int _pvchange_single(struct cmd_context *cmd, struct volume_group *vg,
 			return 0;
 		log_verbose("Changing uuid of %s to %s.", pv_name, uuid);
 		if (!is_orphan(pv)) {
+			char *oldsymlink;
 			orig_vg_name = pv_vg_name(pv);
 			orig_pe_alloc_count = pv_pe_alloc_count(pv);
 
@@ -140,11 +241,20 @@ static int _pvchange_single(struct cmd_context *cmd, struct volume_group *vg,
 
 			pv->vg_name = pv->fmt->orphan_vg_name;
 			pv->pe_alloc_count = 0;
+			oldsymlink = pv_symlink_handle(cmd, pv_name, 0);
 			if (!(pv_write(cmd, pv, 0))) {
 				log_error("pv_write with new uuid failed "
 					  "for %s.", pv_name);
+				if (oldsymlink) dm_free(oldsymlink);
 				return 0;
 			}
+
+			pv_symlink_handle(cmd, pv_name, 1);
+			if (oldsymlink) {
+			  unlink(oldsymlink);
+			  dm_free(oldsymlink);
+			}
+
 			pv->vg_name = orig_vg_name;
 			pv->pe_alloc_count = orig_pe_alloc_count;
 
@@ -162,11 +272,21 @@ static int _pvchange_single(struct cmd_context *cmd, struct volume_group *vg,
 			return 0;
 		}
 		backup(vg);
-	} else if (!(pv_write(cmd, pv, 0))) {
-		log_error("Failed to store physical volume \"%s\"",
-			  pv_name);
-		return 0;
-	}
+		} else {
+			char *oldsymlink;
+			oldsymlink = pv_symlink_handle(cmd, pv_name, 0);
+			if (!(pv_write(cmd, pv, 0))) {
+				log_error("Failed to store physical volume \"%s\"",
+					pv_name);
+				if (oldsymlink) dm_free(oldsymlink);
+				return 0;
+			}
+			pv_symlink_handle(cmd, pv_name, 1);
+			if (oldsymlink) {
+			  unlink(oldsymlink);
+			  dm_free(oldsymlink);
+			}
+		}
 
 	log_print_unless_silent("Physical volume \"%s\" changed", pv_name);
 

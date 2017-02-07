@@ -18,6 +18,34 @@
 const char _really_wipe[] =
     "Really WIPE LABELS from physical volume \"%s\" of volume group \"%s\" [y/n]? ";
 
+static const char* pv_remove_symlink(struct cmd_context* cmd, const char* name)
+{
+	struct physical_volume *pv = NULL;
+	char *pvuuid;
+	char pvuuid_link[70] __attribute__((aligned(8)));
+
+	if (!(pv = pv_read(cmd, name, 0, 0))) {
+		return NULL;
+	}
+
+	pvuuid = dm_malloc(sizeof(char)*40);
+	if (pvuuid == NULL) {
+		goto bad;
+	}
+
+	id_write_format(&pv->id, pvuuid, 40);
+
+	dm_snprintf(pvuuid_link, 70, "/dev/disk/by-id/lvm2-pvuuid-%s", pvuuid);
+	unlink(pvuuid_link); //we really don't care if it successed or not.
+
+	dm_free(pvuuid);
+	free_pv_fid(pv);
+	return pvuuid;
+bad:
+	free_pv_fid(pv);
+	return NULL;
+}
+
 /*
  * Decide whether it is "safe" to wipe the labels on this device.
  * 0 indicates we may not.
@@ -133,6 +161,8 @@ static int pvremove_single(struct cmd_context *cmd, const char *pv_name,
 
 	log_print_unless_silent("Labels on physical volume \"%s\" successfully wiped",
 				pv_name);
+
+	pv_remove_symlink(cmd, pv_name);
 
 	ret = ECMD_PROCESSED;
 
