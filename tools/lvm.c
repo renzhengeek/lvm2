@@ -216,6 +216,10 @@ int lvm_shell(struct cmd_context *cmd, struct cmdline_context *cmdline)
 			log_error("Too many arguments, sorry.");
 			continue;
 		}
+		if (argc == 0 ) {
+			log_debug("Empty input, sorry.");
+			continue;
+		}
 
 		if (!argc)
 			continue;
