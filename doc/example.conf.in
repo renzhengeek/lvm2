@@ -224,6 +224,23 @@ allocation {
     # algorithm.
     maximise_cling = 1
 
+    # Set to 1 to guarantee that mirror leg will always be placed on
+    # different PVs(with different tags) from the other mirror legs.
+    #
+    # If you want to enable this feature, the following conditions
+    # must be met:
+    # 1) The mirror_legs_require_separate_pvs must be set to 1, the
+    #    default value is 0.
+    # 2) The cling_tag_list must be activated.
+    # 3) The length of all pvs with same tag must greater than or equal
+    #    to the mirror's.
+
+    # This feature is only for the first allocation, on the other hand
+    # when creating new mirrored lvs.
+    # Please note that the commond may fail if the number of all tags
+    # on the pvs less than the mirror legs number.
+    mirror_legs_require_separate_pvs = 0
+
     # Set to 1 to guarantee that mirror logs will always be placed on 
     # different PVs from the mirror images.  This was the default
     # until version 2.02.85.

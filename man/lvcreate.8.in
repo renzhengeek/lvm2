@@ -205,6 +205,9 @@ will create a persistent log that is itself mirrored.
 
 The optional argument --corelog is equivalent to --mirrorlog core.
 
+Every leg of the mirrored logical volume could be placed on the pvs with
+same tag, see details(mirror_legs_require_separate_pvs) in lvm.conf.
+
 .TP
 .IR \fB\-n ", " \fB\-\-name " " LogicalVolume { Name | Path }
 The name for the new logical volume.
