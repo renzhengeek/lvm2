@@ -18,6 +18,7 @@
 
 #include "metadata-exported.h"
 #include "locking.h"
+#include "defaults.h"
 
 #include <stdint.h>
 
