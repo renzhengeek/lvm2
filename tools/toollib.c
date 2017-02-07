@@ -586,6 +586,13 @@ int process_each_vg(struct cmd_context *cmd, int argc, char **argv,
 	}
 
 	if (!argc || !dm_list_empty(&tags)) {
+		if (!strncmp(cmd->command->name, "vgchange", strlen("vgchange"))) {
+			if (find_config_tree_bool(cmd, "global/no_default_vgs",
+						DEFAULT_NO_DEFAULT_VGS)) {
+				log_error("No volume groups specified while no default ones to use");
+				return ret_max;
+			}
+		}
 		log_verbose("Finding all volume groups");
 		if (!lvmetad_vg_list_to_lvmcache(cmd))
 			stack;
