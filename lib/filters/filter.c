@@ -14,6 +14,7 @@
  */
 
 #include <sys/ioctl.h>
+#define _LINUX_AUDIT_H_
 #include <linux/fs.h>
 #undef MAJOR
 #undef MINOR
