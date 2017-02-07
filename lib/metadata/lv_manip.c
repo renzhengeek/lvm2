@@ -1703,7 +1703,7 @@ static void _replace_required_area(struct alloc_handle *ah, uint32_t max_to_allo
 	 * the alloc_state and reserved areas every time.
 	 */
 	if (required > alloc_state->areas[ix_pva - 1].used)
-		_reserve_area(&alloc_state->areas[ix_pva - 1], pva, required, ix_pva, pva->unreserved);
+		_reserve_area(ah, alloc_state, pva, required, ix_pva, pva->unreserved);
 }
 
 static void _clear_areas(struct alloc_state *alloc_state)
@@ -1916,8 +1916,8 @@ static int _find_some_parallel_space(struct alloc_handle *ah,
 					continue;
 
 				case USE_AREA:
-					if((ret = check_areas_separate_tags(ah, alloc_state, ix_offset,
-									    ix + ix_offset, pva)) >= 0) {
+					if((ret = check_areas_separate_tags(ah, alloc_state, alloc_state->num_positional_areas,
+									    ix + alloc_state->num_positional_areas, pva)) >= 0) {
 						_replace_required_area(ah, max_to_allocate, ret + 1,
 								       pva, alloc_state, alloc_parms->alloc);
 						continue;
