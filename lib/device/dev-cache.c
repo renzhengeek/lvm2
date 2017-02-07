@@ -571,6 +571,12 @@ static void _insert_dirs(struct dm_list *dirs)
 	with_udev = obtain_device_list_from_udev() &&
 		    (udev = udev_get_library_context());
 
+	dm_list_iterate_items(dl, &_cache.scandevices) {
+		if(!_insert(dl->dir,0, with_udev))
+			log_debug("%s: Failed to insert devices to "
+				  "device cache fully", dl->dir);
+	}
+
 	dm_list_iterate_items(dl, &_cache.dirs) {
 		if (with_udev) {
 			if (!_insert_udev_dir(udev, dl->dir))
