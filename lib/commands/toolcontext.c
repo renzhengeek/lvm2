@@ -690,6 +690,24 @@ static int _init_dev_cache(struct cmd_context *cmd)
 				      DEFAULT_OBTAIN_DEVICE_LIST_FROM_UDEV) : 0;
 	init_obtain_device_list_from_udev(device_list_from_udev);
 
+	if (!(cn = find_config_tree_node(cmd, "devices/scandevice")))
+		goto s_normal;
+
+	for (cv = cn->v; cv; cv = cv->next) {
+		if (cv->type != DM_CFG_STRING) {
+			log_warn("Invalid string in config file: "
+					"device/scandevice");
+			goto s_normal;
+		}
+		if (!dev_cache_add_scandevice(cv->v.str)) {
+			log_warn("Failed to add %s to internal device cache",
+					cv->v.str);
+			goto s_normal;
+		}
+	}
+	return 1;
+
+s_normal:
 	if (!(cn = find_config_tree_node(cmd, "devices/scan"))) {
 		if (!dev_cache_add_dir("/dev")) {
 			log_error("Failed to add /dev to internal "
@@ -885,6 +903,12 @@ static int _init_filters(struct cmd_context *cmd, unsigned load_persistent_cache
 
 	if (!*cmd->system_dir)
 		cmd->dump_filter = 0;
+
+	/* skip loading persistent filter while scandevice is set */
+	if (find_config_tree_node(cmd, "devices/scandevice")) {
+		cmd->dump_filter = 0;
+		load_persistent_cache = 0;
+	}
 
 	/*
 	 * Only load persistent filter device cache on startup if it is newer

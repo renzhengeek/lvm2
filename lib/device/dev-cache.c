@@ -44,6 +44,7 @@ static struct {
 	int has_scanned;
 	struct dm_list dirs;
 	struct dm_list files;
+	struct dm_list scandevices;
 
 } _cache;
 
@@ -594,6 +595,9 @@ static void _insert_dirs(struct dm_list *dirs)
 {
 	struct dir_list *dl;
 
+	dm_list_iterate_items(dl, &_cache.scandevices)
+		_insert(dl->dir, 0);
+
 	dm_list_iterate_items(dl, &_cache.dirs)
 		_insert_dir(dl->dir);
 }
@@ -758,6 +762,7 @@ int dev_cache_init(struct cmd_context *cmd)
 
 	dm_list_init(&_cache.dirs);
 	dm_list_init(&_cache.files);
+	dm_list_init(&_cache.scandevices);
 
 	if (!_init_preferred_names(cmd))
 		goto_bad;
@@ -802,6 +807,7 @@ void dev_cache_exit(void)
 	_cache.has_scanned = 0;
 	dm_list_init(&_cache.dirs);
 	dm_list_init(&_cache.files);
+	dm_list_init(&_cache.scandevices);
 }
 
 int dev_cache_add_dir(const char *path)
@@ -827,6 +833,27 @@ int dev_cache_add_dir(const char *path)
 
 	strcpy(dl->dir, path);
 	dm_list_add(&_cache.dirs, &dl->list);
+	return 1;
+}
+
+int dev_cache_add_scandevice(const char *path)
+{
+	struct dir_list *dl;
+	struct stat st;
+	if (stat(path, &st)) {
+		log_error("Ignoring %s: %s", path, strerror(errno));
+		return 1;
+	}
+	if (!S_ISBLK(st.st_mode)) {
+		log_error("Ignoring %s: Not a block device", path);
+		return 1;
+	}
+	if (!(dl = _zalloc(sizeof(*dl) + strlen(path) + 1))) {
+		log_error("dir_list allocation failed for scandevice");
+		return 0;
+	}
+	strcpy(dl->dir, path);
+	dm_list_add(&_cache.scandevices, &dl->list);
 	return 1;
 }
 
