@@ -201,6 +201,11 @@ static int _vgstatus_disp(struct dm_report *rh __attribute__((unused)), struct d
 	const struct volume_group *vg = (const struct volume_group *) data;
 	char *repstr;
 
+	if (vg->alloc == ALLOC_INVALID) {
+		log_error("invalid volume group");
+		return 0;
+	}
+
 	if (!(repstr = vg_attr_dup(mem, vg)))
 		return 0;
 

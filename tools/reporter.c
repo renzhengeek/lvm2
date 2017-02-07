@@ -170,6 +170,9 @@ static int _pvs_single(struct cmd_context *cmd, struct volume_group *vg,
 		}
 
 		pv = pvl->pv;
+	} else if (!is_orphan(pv) && !vg) {
+		log_error("Invalid volume group %s", pv_vg_name(pv));
+		return ECMD_FAILED;
 	}
 
 	if (!report_object(handle, vg, NULL, pv, NULL, NULL)) {
