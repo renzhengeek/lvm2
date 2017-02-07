@@ -434,7 +434,17 @@ static int _insert_dir(const char *dir)
 	dirent_count = scandir(dir, &dirent, NULL, alphasort);
 	if (dirent_count > 0) {
 		for (n = 0; n < dirent_count; n++) {
-			if (dirent[n]->d_name[0] == '.') {
+			if (dirent[n]->d_name[0] == '.' && dirent[n]->d_name[1] == '\0') {
+				free(dirent[n]);
+				continue;
+			}
+			/*
+			if (dirent[n]->d_name[0] == '.' && dirent[n]->d_name[1] == '.' && dirent[n]->d_name[2] == '\0') {
+				free(dirent[n]);
+				continue;
+			}
+			*/
+			if (dirent[n]->d_name[0] == '.' && dirent[n]->d_name[1] != 't') {
 				free(dirent[n]);
 				continue;
 			}
