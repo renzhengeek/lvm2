@@ -181,6 +181,10 @@ static int _scan_proc_dev(const char *proc, const struct dm_config_node *cn)
 	/* All types unrecognised initially */
 	memset(_partitions, 0, sizeof(_partitions));
 
+	/* Extended devt will use MAJOR 259
+	   Consider it an non-partitionable block device */
+	_partitions[259].max_partitions = 1;
+
 	if (dm_snprintf(proc_devices, sizeof(proc_devices),
 			 "%s/devices", proc) < 0) {
 		log_error("Failed to create /proc/devices string");
