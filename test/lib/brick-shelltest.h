@@ -1157,7 +1157,7 @@ static int run( int argc, const char **argv, std::string fl_envvar = "TEST_FLAVO
     if ( args.has( "--flavours" ) )
         split( args.opt( "--flavours" ), opt.flavours );
     else
-        opt.flavours.push_back( "vanilla" );
+        opt.flavours.push_back( "ndev-vanilla" );
 
     if ( args.has( "--watch" ) )
         split( args.opt( "--watch" ), opt.watch );
