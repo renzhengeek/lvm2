@@ -35,9 +35,9 @@ SOURCES =\
 
 INCLUDES = -I$(srcdir)/$(interface)
 
-#ifeq ("@STATIC_LINK@", "yes")
+ifeq ("@STATIC_LINK@", "yes")
 LIB_STATIC = $(interface)/libdevmapper.a
-#endif
+endif
 
 LIB_SHARED = $(interface)/libdevmapper.$(LIB_SUFFIX)
 LIB_VERSION = $(LIB_VERSION_DM)
@@ -69,9 +69,9 @@ libdevmapper.$(LIB_SUFFIX) libdevmapper.$(LIB_SUFFIX).$(LIB_VERSION): $(LIB_SHAR
 
 INSTALL_TYPE = install_dynamic
 
-#ifeq ("@STATIC_LINK@", "yes")
+ifeq ("@STATIC_LINK@", "yes")
   INSTALL_TYPE += install_static
-#endif
+endif
 
 ifeq ("@PKGCONFIG@", "yes")
   INSTALL_TYPE += install_pkgconfig
