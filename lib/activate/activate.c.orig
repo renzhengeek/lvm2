@@ -612,26 +612,6 @@ int module_present(struct cmd_context *cmd, const char *target_name)
 	return ret;
 }
 
-/* 0 on not running, 1 on running */
-static int check_cmirrord(void)
-{
-	int fd;
-	int ret = 0;
-	struct flock lock;
-	if (( fd = open("/var/run/cmirrord.pid", O_WRONLY)) >= 0)
-	{
-		lock.l_type = F_WRLCK;
-		lock.l_start = 0;
-		lock.l_whence = SEEK_SET;
-		lock.l_len = 0;
-		if (fcntl(fd, F_SETLK, &lock) < 0) {
-			ret = 1;
-		}
-		close(fd);
-	}
-	return ret;
-}
-
 int target_present(struct cmd_context *cmd, const char *target_name,
 		   int use_modprobe)
 {
@@ -639,16 +619,6 @@ int target_present(struct cmd_context *cmd, const char *target_name,
 
 	if (!activation())
 		return 0;
-
-	if (!strncmp(target_name, "log-userspace", 13)) {
-		/*
-		   When the target_name is log-userspace, it also means
-		   we need cmirrord daemon running. It doesn't work alone.
-		 */
-		if (!check_cmirrord())
-			log_error("cmirrord is required, but not running now.");
-			return_0;
-	}
 
 #ifdef MODPROBE_CMD
 	if (use_modprobe) {
