@@ -416,16 +416,18 @@ error:
 /* Resume the LV if it was active */
 static int do_resume_lv(char *resource, unsigned char command, unsigned char lock_flags)
 {
-	int oldmode, origin_only, exclusive, revert;
+	int oldmode, origin_only, exclusive = 0, revert;
 
+#if 0
 	/* Is it open ? */
 	oldmode = get_current_lock(resource);
 	if (oldmode == -1 && (command & LCK_CLUSTER_VG)) {
 		DEBUGLOG("do_resume_lv, lock not already held\n");
 		return 0;	/* We don't need to do anything */
 	}
-	origin_only = (lock_flags & LCK_ORIGIN_ONLY_MODE) ? 1 : 0;
 	exclusive = (oldmode == LCK_EXCL) ? 1 : 0;
+#endif
+	origin_only = (lock_flags & LCK_ORIGIN_ONLY_MODE) ? 1 : 0;
 	revert = (lock_flags & LCK_REVERT_MODE) ? 1 : 0;
 
 	if (!lv_resume_if_active(cmd, resource, origin_only, exclusive, revert, NULL))
@@ -439,16 +441,17 @@ static int do_suspend_lv(char *resource, unsigned char command, unsigned char lo
 {
 	int oldmode;
 	unsigned origin_only = (lock_flags & LCK_ORIGIN_ONLY_MODE) ? 1 : 0;
-	unsigned exclusive;
+	unsigned exclusive = 0;
 
+#if 0
 	/* Is it open ? */
 	oldmode = get_current_lock(resource);
 	if (oldmode == -1 && (command & LCK_CLUSTER_VG)) {
 		DEBUGLOG("do_suspend_lv, lock not already held\n");
 		return 0; /* Not active, so it's OK */
 	}
-
 	exclusive = (oldmode == LCK_EXCL) ? 1 : 0;
+#endif
 
 	/* Always call lv_suspend to read commited and precommited data */
 	if (!lv_suspend_if_active(cmd, resource, origin_only, exclusive, NULL, NULL))
