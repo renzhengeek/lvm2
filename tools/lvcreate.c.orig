@@ -628,28 +628,6 @@ static int _read_activation_params(struct cmd_context *cmd,
 	return 1;
 }
 
-static int clvmd_daemon_is_running(void)
-{
-       int fd;
-       struct flock lock;
-
-       if((fd = open(CLVMD_PIDFILE, O_RDONLY)) < 0)
-               return 0;
-
-       lock.l_type = F_WRLCK;
-       lock.l_start = 0;
-       lock.l_whence = SEEK_SET;
-       lock.l_len = 0;
-       if (fcntl(fd, F_GETLK, &lock) < 0) {
-	       /* errors with fcntl */
-               close(fd);
-               return 0;
-       }
-
-       close(fd);
-       return (lock.l_type == F_UNLCK) ? 0 : 1;
-}
-
 static int _lvcreate_params(struct cmd_context *cmd,
 			    int argc, char **argv,
 			    struct lvcreate_params *lp,
@@ -700,8 +678,6 @@ static int _lvcreate_params(struct cmd_context *cmd,
 		mirror_default_cfg = (arg_uint_value(cmd, stripes_ARG, 1) > 1)
 			? global_raid10_segtype_default_CFG : global_mirror_segtype_default_CFG;
 		segtype_str = find_config_tree_str(cmd, mirror_default_cfg, NULL);
-		if(clvmd_daemon_is_running())
-			segtype_str = "mirror";
 	} else
 		segtype_str = "striped";
 
