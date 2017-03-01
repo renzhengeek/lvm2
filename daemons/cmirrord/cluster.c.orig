@@ -353,10 +353,6 @@ static int handle_cluster_response(struct clog_cpg *entry,
 	/* FIXME: Ensure memcpy cannot explode */
 	memcpy(orig_rq, rq, sizeof(*rq) + rq->u_rq.data_size);
 
-	/* make sure the response of DM_ULOG_FLUSH has no payload */
-	if (orig_rq->u_rq.request_type == DM_ULOG_FLUSH)
-		orig_rq->u_rq.data_size = 0;
-
 	r = kernel_send(&orig_rq->u_rq);
 	if (r)
 		LOG_ERROR("Failed to send response to kernel");
