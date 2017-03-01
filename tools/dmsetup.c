@@ -1733,6 +1733,129 @@ static int _status(CMD_ARGS)
 	return r;
 }
 
+static int _export(CMD_ARGS)
+{
+        int r = 0;
+        struct dm_task *dmt = NULL;
+        void *next = NULL;
+        uint64_t start, length;
+        char *target_type = NULL;
+        char *params;
+        const char *name = NULL;
+        const char *old_name = NULL;
+        const char *uuid = NULL;
+        struct dm_info info;
+        struct dm_deps *deps;
+
+        if (names)
+                name = names->name;
+        else if (argc == 2)
+                name = argv[1];
+        old_name = name;
+
+        if (!(dmt = dm_task_create(DM_DEVICE_STATUS)))
+                goto out;
+
+        if (!_set_task_device(dmt, name, 0))
+                goto out;
+
+        if (!dm_task_run(dmt))
+                goto out;
+
+        if (!dm_task_get_info(dmt, &info) || !info.exists)
+                goto out;
+
+        if (!name)
+                name = dm_task_get_name(dmt);
+
+        uuid = dm_task_get_uuid(dmt);
+        printf("DM_NAME=%s\n", name);
+
+        if ((uuid = dm_task_get_uuid(dmt)) && *uuid)
+                printf("DM_UUID=%s\n", uuid);
+
+        if (!info.exists) {
+                printf("DM_STATE=NOTPRESENT\n");
+                goto out;
+        }
+
+        if (!name)
+                name = dm_task_get_name(dmt);
+
+        uuid = dm_task_get_uuid(dmt);
+        printf("DM_NAME=%s\n", name);
+
+        if ((uuid = dm_task_get_uuid(dmt)) && *uuid)
+                printf("DM_UUID=%s\n", uuid);
+
+        if (!info.exists) {
+                printf("DM_STATE=NOTPRESENT\n");
+                goto out;
+        }
+
+        printf("DM_STATE=%s\n",
+               info.suspended ? "SUSPENDED" :
+               (info.read_only ? "READONLY" : "ACTIVE"));
+
+        if (!info.live_table && !info.inactive_table)
+                printf("DM_TABLE_STATE=NONE\n");
+        else
+                printf("DM_TABLE_STATE=%s%s%s\n",
+                       info.live_table ? "LIVE" : "",
+                       info.live_table && info.inactive_table ? "/" : "",
+                       info.inactive_table ? "INACTIVE" : "");
+
+        if (info.open_count != -1)
+                printf("DM_OPENCOUNT=%d\n", info.open_count);
+
+        printf("DM_LAST_EVENT_NR=%" PRIu32 "\n", info.event_nr);
+
+        printf("DM_MAJOR=%d\n", info.major);
+        printf("DM_MINOR=%d\n", info.minor);
+
+        if (info.target_count != -1)
+                printf("DM_TARGET_COUNT=%d\n", info.target_count);
+
+        /* export all table types */
+        next = dm_get_next_target(dmt, next, &start, &length,
+                                  &target_type, &params);
+        if (target_type) {
+                printf("DM_TARGET_TYPES=%s", target_type);
+                while (next) {
+                        next = dm_get_next_target(dmt, next, &start, &length,
+                                                  &target_type, &params);
+                        if (target_type)
+                                printf(",%s", target_type);
+                }
+                printf("\n");
+        }
+
+        dm_task_destroy(dmt);
+
+        // bnc#707614, revert to the original name
+
+        if (!(dmt = dm_task_create(DM_DEVICE_DEPS)))
+                goto out;
+
+        name = old_name;
+        if (!_set_task_device(dmt, name, 0))
+                goto out;
+
+        if (!dm_task_run(dmt))
+                goto out;
+
+        if (!(deps = dm_task_get_deps(dmt)))
+                goto out;
+
+        printf("DM_DEPS=%d\n", deps->count);
+
+        r = 1;
+      out:
+        if (dmt)
+                dm_task_destroy(dmt);
+        return r;
+}
+
 /* Show target names and their version numbers */
 static int _targets(CMD_ARGS)
 {
@@ -3086,6 +3209,7 @@ static struct command _commands[] = {
 	{"info", "[<device>]", 0, -1, 1, _info},
 	{"deps", "[-o options] [<device>]", 0, -1, 1, _deps},
 	{"status", "[<device>] [--noflush] [--target <target_type>]", 0, -1, 1, _status},
+	{"export", "[<device>]", 0, -1, 1, _export},
 	{"table", "[<device>] [--target <target_type>] [--showkeys]", 0, -1, 1, _status},
 	{"wait", "<device> [<event_nr>] [--noflush]", 0, 2, 0, _wait},
 	{"mknodes", "[<device>]", 0, -1, 1, _mknodes},
