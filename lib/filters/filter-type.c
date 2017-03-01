@@ -13,6 +13,7 @@
  * Inc., 59 Temple Place, Suite 330, Boston, MA  02111-1307  USA
  */
 #include <sys/ioctl.h>
+#define _LINUX_AUDIT_H_
 #include <linux/fs.h>
 #undef MAJOR
 #undef MINOR
