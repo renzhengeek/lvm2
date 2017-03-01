@@ -47,6 +47,7 @@ ENV{ID_FS_UUID_ENC}=="?*", SYMLINK+="disk/by-id/lvm-pv-uuid-$env{ID_FS_UUID_ENC}
 
 # DM device:
 KERNEL!="dm-[0-9]*", GOTO="next"
+KERNEL=="dm-[0-9]*", ENV{DM_NR_VALID_PATHS}=="0", GOTO="lvm_end"
 ENV{DM_UDEV_PRIMARY_SOURCE_FLAG}=="1", ENV{DM_ACTIVATION}=="1", GOTO="lvm_scan"
 GOTO="lvm_end"
 
