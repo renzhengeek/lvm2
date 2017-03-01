@@ -62,6 +62,7 @@
  */
 #define MAPPER_CTRL_MINOR 236
 #define MISC_MAJOR 10
+#define DM_IOCTL_RETRIES 25
 
 /* dm major version no for running kernel */
 static unsigned _dm_version = DM_VERSION_MAJOR;
@@ -1820,7 +1821,7 @@ static struct dm_ioctl *_do_dm_ioctl(struct dm_task *dmt, unsigned command,
 					    dmt->major > 0 && dmt->minor == 0 ? "0" : "",
 					    dmt->major > 0 ? ")" : "",
 					    strerror(errno));
-			else
+            else if(errno != EBUSY || retry_repeat_count == DM_IOCTL_RETRIES)
 				log_error("device-mapper: %s ioctl on %s%s%s%.0d%s%.0d%s%s "
 					  "failed: %s",
 					  _cmd_data_v4[dmt->type].name,
@@ -1873,7 +1874,6 @@ void dm_task_update_nodes(void)
 	update_devs();
 }
 
-#define DM_IOCTL_RETRIES 25
 #define DM_RETRY_USLEEP_DELAY 200000
 
 int dm_task_run(struct dm_task *dmt)
