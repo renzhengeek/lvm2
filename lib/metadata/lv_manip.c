@@ -2729,8 +2729,8 @@ static int _find_some_parallel_space(struct alloc_handle *ah,
 
 				case USE_AREA:
 					ret = check_areas_separate_tags(ah,
-							alloc_state, ix_offset,
-							ix + ix_offset, pva);
+							alloc_state, alloc_state->num_positional_areas,
+							ix + alloc_state->num_positional_areas, pva);
 					if (ret >= 0) {
 						_replace_required_area(ah,
 							max_to_allocate,
