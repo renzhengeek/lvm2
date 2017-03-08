@@ -1889,22 +1889,28 @@ repeat_ioctl:
 	switch (dmt->type) {
 	case DM_DEVICE_CREATE:
 		if ((dmt->add_node == DM_ADD_NODE_ON_CREATE) &&
-		    dev_name && *dev_name && !rely_on_udev)
+		    dev_name && *dev_name && !rely_on_udev) {
+			log_error("Creating device node '%s'", dev_name);
 			add_dev_node(dev_name, MAJOR(dmi->dev),
 				     MINOR(dmi->dev), dmt->uid, dmt->gid,
 				     dmt->mode, check_udev, rely_on_udev);
+		}
 		break;
 	case DM_DEVICE_REMOVE:
 		/* FIXME Kernel needs to fill in dmi->name */
-		if (dev_name && !rely_on_udev)
+		if (dev_name && !rely_on_udev) {
+			log_error("Removing device node '%s'", dev_name);
 			rm_dev_node(dev_name, check_udev, rely_on_udev);
+		}
 		break;
 
 	case DM_DEVICE_RENAME:
 		/* FIXME Kernel needs to fill in dmi->name */
-		if (!dmt->new_uuid && dev_name)
+		if (!dmt->new_uuid && dev_name) {
+			log_error("Renaming device node '%s'", dev_name);
 			rename_dev_node(dev_name, dmt->newname,
 					check_udev, rely_on_udev);
+		}
 		break;
 
 	case DM_DEVICE_RESUME:
