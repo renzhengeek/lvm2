@@ -154,17 +154,16 @@ int main(int argc, char *argv[])
 	}
 
 	/* If lvmetad used, rely on autoactivation instead of direct activation. */
-	if (lvm_uses_lvmetad()) {
-		kmsg("LVM: Logical Volume autoactivation enabled.\n");
+	if (lvm_uses_lvmetad())
 		goto out;
-	}
 
 	dir = argc > 1 ? argv[1] : DEFAULT_UNIT_DIR;
 
 	if (!generate_unit(dir, 1) || !generate_unit(dir, 0))
 		r = EXIT_FAILURE;
 out:
-	kmsg("LVM: Activation generator %s.\n", r ? "failed" : "successfully completed");
+	if (r)
+		kmsg("LVM: Activation generator failed.\n");
 	if (kmsg_fd != -1)
 		(void) close(kmsg_fd);
 	return r;
