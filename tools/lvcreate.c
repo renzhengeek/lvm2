@@ -670,6 +670,28 @@ static int _read_activation_params(struct lvcreate_params *lp, struct cmd_contex
 	return 1;
 }
 
+static int clvmd_daemon_is_running()
+{
+       int fd;
+       struct flock lock;
+
+       if((fd = open(CLVMD_PIDFILE, O_RDONLY)) < 0)
+               return 0;
+
+       lock.l_type = F_WRLCK;
+       lock.l_start = 0;
+       lock.l_whence = SEEK_SET;
+       lock.l_len = 0;
+       if (fcntl(fd, F_GETLK, &lock) < 0) {
+	       /* errors with fcntl */
+               close(fd);
+               return 0;
+       }
+
+       close(fd);
+       return (lock.l_type == F_UNLCK) ? 0 : 1;
+}
+
 static int _lvcreate_params(struct lvcreate_params *lp,
 			    struct lvcreate_cmdline_params *lcp,
 			    struct cmd_context *cmd,
@@ -696,15 +718,16 @@ static int _lvcreate_params(struct lvcreate_params *lp,
 	}
 
 // FIXME -m0 implies *striped*
-
-	/* Set default segtype */
-	if (arg_count(cmd, mirrors_ARG))
+        /* Set default segtype */
+	if (arg_count(cmd, mirrors_ARG)) {
 		/*
 		 * FIXME: Add default setting for when -i and -m arguments
 		 *        are both given.  We should default to "raid10".
 		 */
 		segtype_str = find_config_tree_str(cmd, "global/mirror_segtype_default", DEFAULT_MIRROR_SEGTYPE);
-	else if (arg_count(cmd, thin_ARG) || arg_count(cmd, thinpool_ARG))
+		if(clvmd_daemon_is_running())
+			segtype_str = "mirror";
+	} else if (arg_count(cmd, thin_ARG) || arg_count(cmd, thinpool_ARG))
 		segtype_str = "thin";
 	else
 		segtype_str = "striped";
