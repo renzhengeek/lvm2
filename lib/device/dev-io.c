@@ -136,16 +136,7 @@ int dev_get_block_size(struct device *dev, unsigned int *physical_block_size, un
     if (needs_open && !dev_open_readonly(dev))
         return_0;
     
-    if (dev->phys_block_size == -1) {
-        if (ioctl(dev_fd(dev), BLKPBSZGET, &dev->phys_block_size) < 0) {
-            log_sys_error("ioctl BLKPBSZGET", name);
-            r = 0;
-            goto out;
-        }   
-        log_debug("%s: physical block size is %u bytes", name, dev->phys_block_size);
-    }   
-
-	if (dev->block_size == -1) {
+    if (dev->block_size == -1) {
 		if (ioctl(dev_fd(dev), BLKBSZGET, &dev->block_size) < 0) {
 			log_sys_error("ioctl BLKBSZGET", name);
                 r = 0;
@@ -153,6 +144,23 @@ int dev_get_block_size(struct device *dev, unsigned int *physical_block_size, un
         }
 		log_debug("%s: block size is %u bytes", name, dev->block_size);
 	}
+
+#ifdef BLKPBSZGET
+   /* BLKPBSZGET is available in kernel >= 2.6.32 only */
+   if (dev->phys_block_size == -1) {
+       if (ioctl(dev_fd(dev), BLKPBSZGET, &dev->phys_block_size) < 0) {
+           log_sys_error("ioctl BLKPBSZGET", name);
+           r = 0;
+           goto out;
+       }
+       log_debug("%s: physical block size is %u bytes", name, dev->phys_block_size);
+   }
+#else
+   /* if we can't get physical block size, just use logical block size instead */
+   dev->phys_block_size = dev->block_size;
+   log_debug("%s: physical block size can't be determined, using logical "
+              "block size of %u bytes instead", name, dev->phys_block_size);
+#endif
 
    *physical_block_size = (unsigned int) dev->phys_block_size;
    *block_size = (unsigned int) dev->block_size;
