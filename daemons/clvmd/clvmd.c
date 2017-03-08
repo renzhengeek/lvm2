@@ -1079,6 +1079,10 @@ static void be_daemon(int timeout)
 		log_error("Error setting terminal FDs to /dev/null: %m");
 		exit(5);
 	}
+	if ((devnull > STDERR_FILENO) && close(devnull)) {
+		log_sys_error("close", "/dev/null");
+		exit(7);
+	}
 	if (chdir("/")) {
 		log_error("Error setting current directory to /: %m");
 		exit(6);
