@@ -59,6 +59,13 @@ int md_major(void)
 	return _md_major;
 }
 
+/* FIXME: Should we consider filter out non-primary
+   drbd resource ?? */
+int drbd_major(void)
+{
+       return _drbd_major;
+}
+
 int blkext_major(void)
 {
 	return _blkext_major;
