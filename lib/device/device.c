@@ -39,7 +39,7 @@ struct partition {
 	uint8_t end_cyl;
 	uint32_t start_sect;
 	uint32_t nr_sects;
-} __attribute__((packed));
+} __attribute__((packed,may_alias));
 
 static int _is_partitionable(struct device *dev)
 {
