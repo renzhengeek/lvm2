@@ -56,5 +56,6 @@ static const device_info_t _device_info[] = {
 	{"blkext", 1},		/* Extended device partitions */
 	{"fio", 16},		/* Fusion */
 	{"mtip32xx", 16},	/* Micron PCIe SSDs */
+	{"scm", 8},		/* Storage Class Memory (IBM S/390) */
 	{"", 0}
 };
