@@ -91,12 +91,48 @@ static void _pvscan_display_single(struct cmd_context *cmd,
 				display_size(cmd, (uint64_t) (pv_pe_count(pv) - pv_pe_alloc_count(pv)) * pv_pe_size(pv)));
 }
 
+#define REFRESH_BEFORE_AUTOACTIVATION_RETRIES 5
+#define REFRESH_BEFORE_AUTOACTIVATION_RETRY_USLEEP_DELAY 100000
+
 static int _auto_activation_handler(struct volume_group *vg, int partial,
 				    activation_change_t activate)
 {
+	unsigned int refresh_retries = REFRESH_BEFORE_AUTOACTIVATION_RETRIES;
+	int refresh_done = 0;
+
 	/* TODO: add support for partial and clustered VGs */
 	if (partial || vg_is_clustered(vg))
 		return 1;
+
+	/* FIXME: There's a tiny race when suspending the device which is part
+	 * of the refresh because when suspend ioctl is performed, the dm
+	 * kernel driver executes (do_suspend and dm_suspend kernel fn):
+	 *
+	 *          step 1: a check whether the dev is already suspended and
+	 *                  if yes it returns success immediately as there's
+	 *                  nothing to do
+	 *          step 2: it grabs the suspend lock
+	 *          step 3: another check whether the dev is already suspended
+	 *                  and if found suspended, it exits with -EINVAL now
+	 *
+	 * The race can occur in between step 1 and step 2. To prevent premature
+	 * autoactivation failure, we're using a simple retry logic here before
+	 * we fail completely. For a complete solution, we need to fix the
+	 * locking so there's no possibility for suspend calls to interleave
+	 * each other to cause this kind of race.
+	 *
+	 * Remove this workaround with "refresh_retries" once we have proper locking in!
+	 */
+	while (refresh_retries--) {
+		if (vg_refresh_visible(vg->cmd, vg)) {
+			refresh_done = 1;
+			break;
+		}
+		usleep(REFRESH_BEFORE_AUTOACTIVATION_RETRY_USLEEP_DELAY);
+	}
+
+	if (!refresh_done)
+		log_warn("%s: refresh before autoactivation failed.", vg->name);
 
 	if (!vgchange_activate(vg->cmd, vg, activate)) {
 		log_error("%s: autoactivation failed.", vg->name);
