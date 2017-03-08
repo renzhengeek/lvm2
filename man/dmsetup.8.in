@@ -43,6 +43,9 @@ dmsetup \- low level logical volume management
 .RI [ device_name ]
 .RE
 .br
+.B dmsetup export
+.I [device_name]
+.br
 .B dmsetup load
 .I device_name
 .RB [ \-\-table
@@ -285,6 +288,10 @@ device_name in subsequent dmsetup commands.
 If successful a device will appear as
 /dev/mapper/<device-name>.
 See below for information on the table format.
+.IP \fBexport
+.I [device_name]
+.br
+Outputs information in key/value format to be imported by other programs.
 .br
 .TP
 .B deps
