@@ -1717,13 +1717,16 @@ static int _export(CMD_ARGS)
 	char *target_type = NULL;
 	char *params;
 	const char *name = NULL;
+	const char *old_name = NULL;
 	const char *uuid = NULL;
 	struct dm_info info;
+	struct dm_deps *deps;
 
 	if (names)
 		name = names->name;
 	else if (argc == 2)
 		name = argv[1];
+	old_name = name;
 
 	if (!(dmt = dm_task_create(DM_DEVICE_STATUS)))
 		goto out;
@@ -1787,6 +1790,25 @@ static int _export(CMD_ARGS)
 		}
 		printf("\n");
 	}
+
+	dm_task_destroy(dmt);
+
+	// bnc#707614, revert to the original name
+
+	if (!(dmt = dm_task_create(DM_DEVICE_DEPS)))
+		goto out;
+
+	name = old_name;
+	if (!_set_task_device(dmt, name, 0))
+		goto out;
+
+	if (!dm_task_run(dmt))
+		goto out;
+
+	if (!(deps = dm_task_get_deps(dmt)))
+		goto out;
+
+	printf("DM_DEPS=%d\n", deps->count);
 
 	r = 1;
       out:
