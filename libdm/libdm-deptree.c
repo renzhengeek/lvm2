@@ -2077,10 +2077,11 @@ static int _mirror_emit_segment_line(struct dm_task *dmt, struct load_segment *s
 			return_0;
 	}
 
-	if (dm_log_userspace)
-		EMIT_PARAMS(pos, "userspace %u %s clustered-%s",
-			    log_parm_count, seg->uuid, logtype);
-	else
+	if (dm_log_userspace) {
+		log_parm_count ++; /* for integrated_flush */
+		EMIT_PARAMS(pos, "userspace %u %s %s clustered-%s",
+			    log_parm_count, seg->uuid, "integrated_flush", logtype);
+	} else
 		EMIT_PARAMS(pos, "%s %u", logtype, log_parm_count);
 
 	if (seg->log)
