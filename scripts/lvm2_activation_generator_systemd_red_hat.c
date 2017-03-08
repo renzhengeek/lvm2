@@ -125,7 +125,7 @@ static int generate_unit(const char *dir, int early)
 	fputs("Before=local-fs.target shutdown.target\n"
 	      "Wants=systemd-udev-settle.service\n\n"
 	      "[Service]\n"
-	      "ExecStart=/usr/sbin/lvm vgchange -aay --sysinit\n"
+	      "ExecStart=/sbin/lvm vgchange -aay --sysinit\n"
 	      "Type=oneshot\n", f);
 
 	if (fclose(f) < 0) {
