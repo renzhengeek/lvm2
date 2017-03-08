@@ -118,6 +118,11 @@ ENV{DM_UDEV_DISABLE_DM_RULES_FLAG}!="1", ENV{DM_NAME}=="?*", SYMLINK+="(DM_DIR)/
 ENV{DM_UUID}=="CRYPT-TEMP-?*", GOTO="dm_disable"
 ENV{DM_UUID}!="?*", ENV{DM_NAME}=="temporary-cryptsetup-?*", GOTO="dm_disable"
 
+# Reset variables for spurious events
+ENV{DM_UDEV_DISABLE_SUBSYSTEM_RULES_FLAG}=""
+ENV{DM_UDEV_DISABLE_DISK_RULES_FLAG}=""
+ENV{DM_UDEV_DISABLE_OTHER_RULES_FLAG}=""
+
 # Avoid processing and scanning a DM device in the other (foreign)
 # rules if it is in suspended state. However, we still keep 'disk'
 # and 'DM subsystem' related rules enabled in this case.
