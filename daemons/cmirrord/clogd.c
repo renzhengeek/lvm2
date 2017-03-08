@@ -42,7 +42,6 @@ int main(int argc __attribute__((unused)), char *argv[] __attribute__((unused)))
 	kill(getppid(), SIGTERM);
 
 	LOG_PRINT("Starting cmirrord:");
-	LOG_PRINT(" Built: "__DATE__" "__TIME__"\n");
 	LOG_DBG(" Compiled with debugging.");
 
 	while (!exit_now) {
