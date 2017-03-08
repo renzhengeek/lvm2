@@ -418,11 +418,13 @@ static int do_resume_lv(char *resource, unsigned char command, unsigned char loc
 	int oldmode, origin_only, exclusive, revert;
 
 	/* Is it open ? */
+	/*
 	oldmode = get_current_lock(resource);
 	if (oldmode == -1 && (command & LCK_CLUSTER_VG)) {
 		DEBUGLOG("do_resume_lv, lock not already held\n");
-		return 0;	/* We don't need to do anything */
+		return 0;
 	}
+	*/
 	origin_only = (lock_flags & LCK_ORIGIN_ONLY_MODE) ? 1 : 0;
 	exclusive = (oldmode == LCK_EXCL) ? 1 : 0;
 	revert = (lock_flags & LCK_REVERT_MODE) ? 1 : 0;
@@ -442,11 +444,13 @@ static int do_suspend_lv(char *resource, unsigned char command, unsigned char lo
 	unsigned exclusive;
 
 	/* Is it open ? */
+	/*
 	oldmode = get_current_lock(resource);
 	if (oldmode == -1 && (command & LCK_CLUSTER_VG)) {
 		DEBUGLOG("do_suspend_lv, lock not already held\n");
-		return 0; /* Not active, so it's OK */
+		return 0;
 	}
+	*/
 
 	exclusive = (oldmode == LCK_EXCL) ? 1 : 0;
 
