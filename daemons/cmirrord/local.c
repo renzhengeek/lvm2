@@ -29,13 +29,13 @@
 
 static int cn_fd = -1;  /* Connector (netlink) socket fd */
 static char recv_buf[2048];
-static char send_buf[2048];
 
 
 /* FIXME: merge this function with kernel_send_helper */
 static int kernel_ack(uint32_t seq, int error)
 {
 	int r;
+	char send_buf[2048];
 	struct nlmsghdr *nlh = (struct nlmsghdr *)send_buf;
 	struct cn_msg *msg = NLMSG_DATA(nlh);
 
@@ -179,6 +179,7 @@ static int kernel_send_helper(void *data, uint16_t out_size)
 	int r;
 	struct nlmsghdr *nlh;
 	struct cn_msg *msg;
+	char send_buf[2048];
 
 	memset(send_buf, 0, sizeof(send_buf));
 
