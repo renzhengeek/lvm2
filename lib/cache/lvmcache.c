@@ -1489,6 +1489,14 @@ struct lvmcache_info *lvmcache_add(struct labeller *labeller, const char *pvid,
 						 dev_subsystem_name(existing->dev),
 						 dev_name(existing->dev));
 				return NULL;
+			} else if (MAJOR(existing->dev->dev) == drbd_major() &&
+					MAJOR(dev->dev) != drbd_major()) {
+				log_very_verbose("Ignoring duplicate PV %s on "
+						"%s - using drbd %s",
+						pvid, dev_name(dev),
+						dev_name(existing->dev));
+				return NULL;
+
 			} else if (dm_is_dm_major(MAJOR(existing->dev->dev)) &&
 				   !dm_is_dm_major(MAJOR(dev->dev))) {
 				log_very_verbose("Ignoring duplicate PV %s on "
@@ -1509,6 +1517,12 @@ struct lvmcache_info *lvmcache_add(struct labeller *labeller, const char *pvid,
 						 "using dm %s", pvid,
 						 dev_name(existing->dev),
 						 dev_name(dev));
+			else if (MAJOR(existing->dev->dev) != drbd_major() &&
+					MAJOR(dev->dev) == drbd_major())
+				log_very_verbose("Duplicate PV %s on %s - "
+						"using drbd %s", pvid,
+						dev_name(existing->dev),
+						dev_name(dev));
 			/* FIXME If both dm, check dependencies */
 			//else if (dm_is_dm_major(MAJOR(existing->dev->dev)) &&
 				 //dm_is_dm_major(MAJOR(dev->dev)))
