@@ -19,7 +19,7 @@ struct dm_hash_node {
 	struct dm_hash_node *next;
 	void *data;
 	unsigned keylen;
-	char key[0];
+	unsigned char key[0];
 };
 
 struct dm_hash_table {
@@ -136,7 +136,7 @@ void dm_hash_destroy(struct dm_hash_table *t)
 static struct dm_hash_node **_find(struct dm_hash_table *t, const void *key,
 				   uint32_t len)
 {
-	unsigned h = _hash(key, len) & (t->num_slots - 1);
+	unsigned h = _hash((unsigned char *)key, len) & (t->num_slots - 1);
 	struct dm_hash_node **c;
 
 	for (c = &t->slots[h]; *c; c = &((*c)->next)) {
@@ -235,7 +235,7 @@ void dm_hash_wipe(struct dm_hash_table *t)
 char *dm_hash_get_key(struct dm_hash_table *t __attribute__((unused)),
 		      struct dm_hash_node *n)
 {
-	return n->key;
+	return (char *)n->key;
 }
 
 void *dm_hash_get_data(struct dm_hash_table *t __attribute__((unused)),

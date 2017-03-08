@@ -1720,7 +1720,8 @@ static struct dm_ioctl *_do_dm_ioctl(struct dm_task *dmt, unsigned command,
 		  dmt->secure_data ? "W " : "",
 		  dmt->query_inactive_table ? "I " : "",
 		  dmt->enable_checks ? "C" : "",
-		  dmt->sector, _sanitise_message(dmt->message),
+		  (unsigned long long int)dmt->sector,
+		  _sanitise_message(dmt->message),
 		  dmi->data_size, retry_repeat_count);
 #ifdef DM_IOCTLS
 	if (ioctl(_control_fd, command, dmi) < 0 &&
