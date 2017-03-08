@@ -666,9 +666,6 @@ struct alloc_handle {
 
 	unsigned maximise_cling;
 	unsigned mirror_logs_separate;	/* Force mirror logs on separate PVs? */
-	unsigned mirror_legs_separate;	/* Force mirror *legs* on separate PVs*/
-
-	const struct segment_type *segtype;
 
 	/*
 	 * RAID devices require a metadata area that accompanies each
@@ -853,7 +850,6 @@ static struct alloc_handle *_alloc_init(struct cmd_context *cmd,
 	ah->parity_count = parity_count;
 	ah->region_size = region_size;
 	ah->alloc = alloc;
-	ah->segtype = segtype;
 
 	/*
 	 * For the purposes of allocation, area_count and parity_count are
@@ -865,8 +861,6 @@ static struct alloc_handle *_alloc_init(struct cmd_context *cmd,
 	ah->area_multiple = _calc_area_multiple(segtype, area_count + parity_count, stripes);
 	ah->mirror_logs_separate = find_config_tree_bool(cmd, "allocation/mirror_logs_require_separate_pvs",
 							 DEFAULT_MIRROR_LOGS_REQUIRE_SEPARATE_PVS);
-	ah->mirror_legs_separate = find_config_tree_bool(cmd, "allocation/mirror_legs_require_separate_pvs",
-							 DEFAULT_MIRROR_LEGS_REQUIRE_SEPARATE_PVS);
 
 	if (segtype_is_raid(segtype)) {
 		if (metadata_area_count) {
@@ -1713,33 +1707,6 @@ static void _report_needed_allocation_space(struct alloc_handle *ah,
 	log_debug("  %" PRIu32 " %ss of %" PRIu32 " extents each",
 		  metadata_count, metadata_type, metadata_size);
 }
-
-/*
- * Return -1 if we don't need check tags, or there aren't any areas in alloc_status
- * have the same tag with pva, the index otherwise.
- */
-static int check_areas_separate_tags(struct alloc_handle *ah,
-				     struct alloc_state *alloc_state,
-				     unsigned ix_start,
-				     unsigned ix_end,
-				     struct pv_area *pva)
-{
-	int i;
-
-	if (!segtype_is_mirrored(ah->segtype) ||
-			alloc_state->allocated ||
-			!ah->mirror_legs_separate ||
-			!ah->cling_tag_list_cn)
-		return -1;
-
-	for (i = ix_start; i < ix_end; i++)
-		if(_pvs_have_matching_tag(ah->cling_tag_list_cn,
-					alloc_state->areas[i].pva->map->pv,
-					pva->map->pv))
-			return i;
-	return -1;
-}
-
 /*
  * Returns 1 regardless of whether any space was found, except on error.
  */
@@ -1857,10 +1824,6 @@ static int _find_some_parallel_space(struct alloc_handle *ah, const struct alloc
 					continue;
 
 				case USE_AREA:
-					if(check_areas_separate_tags(ah, alloc_state, ix_offset,
-								     ix + ix_offset, pva) >= 0)
-						goto next_pv;
-
 					/*
 					 * Except with ALLOC_ANYWHERE, replace first area with this
 					 * one which is smaller but still big enough.
