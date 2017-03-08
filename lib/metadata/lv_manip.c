@@ -69,6 +69,7 @@ struct alloc_state {
 	uint32_t areas_size;
 	uint32_t log_area_count_still_needed;	/* Number of areas still needing to be allocated for the log */
 	uint32_t allocated;	/* Total number of extents allocated so far */
+	uint32_t num_positional_areas;	/* Number of parallel allocations that must be contiguous/cling */
 };
 
 struct lv_names {
@@ -1453,6 +1454,10 @@ static int _is_condition(struct cmd_context *cmd __attribute__((unused)),
 	if (!pvmatch->condition(pvmatch, pvseg, pvmatch->pva))
 		return 1;	/* Continue */
 
+	if (positional && (s >= pvmatch->alloc_state->num_positional_areas))
+		return 1;
+
+	/* FIXME The previous test should make this one redundant. */
 	if (positional && (s >= pvmatch->alloc_state->areas_size))
 		return 1;
 
@@ -1705,6 +1710,8 @@ static void _clear_areas(struct alloc_state *alloc_state)
 {
 	uint32_t s;
 
+	alloc_state->num_positional_areas = 0;
+
 	for (s = 0; s < alloc_state->areas_size; s++)
 		alloc_state->areas[s].pva = NULL;
 }
@@ -1793,7 +1800,6 @@ static int _find_some_parallel_space(struct alloc_handle *ah,
 	struct pv_area *pva;
 	unsigned preferred_count = 0;
 	unsigned already_found_one;
-	unsigned ix_offset = 0;	/* Offset for non-preferred allocations */
 	unsigned ix_log_offset; /* Offset to start of areas to use for log */
 	unsigned too_small_for_log_count; /* How many too small for log? */
 	unsigned iteration_count = 0; /* cling_to_alloced may need 2 iterations */
@@ -1803,26 +1809,27 @@ static int _find_some_parallel_space(struct alloc_handle *ah,
 	uint32_t devices_needed = ah->area_count + ah->parity_count;
 	uint32_t required;
 
-	/* ix_offset holds the number of parallel allocations that must be contiguous/cling */
+	_clear_areas(alloc_state);
+	_reset_unreserved(pvms);
+
+	/* num_positional_areas holds the number of parallel allocations that must be contiguous/cling */
+	/* These appear first in the array, so it is also the offset to the non-preferred allocations */
 	/* At most one of A_CONTIGUOUS_TO_LVSEG, A_CLING_TO_LVSEG or A_CLING_TO_ALLOCED may be set */
 	if (!(alloc_parms->flags & A_POSITIONAL_FILL))
-		ix_offset = 0;
+		alloc_state->num_positional_areas = 0;
 	else if (alloc_parms->flags & (A_CONTIGUOUS_TO_LVSEG | A_CLING_TO_LVSEG))
-		ix_offset = _stripes_per_mimage(alloc_parms->prev_lvseg) * alloc_parms->prev_lvseg->area_count;
+		alloc_state->num_positional_areas = _stripes_per_mimage(alloc_parms->prev_lvseg) * alloc_parms->prev_lvseg->area_count;
 	else if (alloc_parms->flags & A_CLING_TO_ALLOCED)
-		ix_offset = ah->area_count;
+		alloc_state->num_positional_areas = ah->area_count;
 
 	if (alloc_parms->alloc == ALLOC_NORMAL || (alloc_parms->flags & A_CLING_TO_ALLOCED))
 		log_debug("Cling_to_allocated is %sset",
 			  alloc_parms->flags & A_CLING_TO_ALLOCED ? "" : "not ");
 
 	if (alloc_parms->flags & A_POSITIONAL_FILL)
-		log_debug("%u preferred area(s) to be filled positionally.", ix_offset);
+		log_debug("%u preferred area(s) to be filled positionally.", alloc_state->num_positional_areas);
 	else
 		log_debug("Areas to be sorted and filled sequentially.");
-
-	_clear_areas(alloc_state);
-	_reset_unreserved(pvms);
 
 	_report_needed_allocation_space(ah, alloc_state);
 
@@ -1831,7 +1838,7 @@ static int _find_some_parallel_space(struct alloc_handle *ah,
 		if (log_iteration_count) {
 			log_debug("Found %u areas for %" PRIu32 " parallel areas and %" PRIu32 " log areas so far.", ix, devices_needed, alloc_state->log_area_count_still_needed);
 		} else if (iteration_count)
-			log_debug("Filled %u out of %u preferred areas so far.", preferred_count, ix_offset);
+			log_debug("Filled %u out of %u preferred areas so far.", preferred_count, alloc_state->num_positional_areas);
 
 		/*
 		 * Provide for escape from the loop if no progress is made.
@@ -1872,7 +1879,7 @@ static int _find_some_parallel_space(struct alloc_handle *ah,
 				 * not enough for the logs.
 				 */
 				if (log_iteration_count) {
-					for (s = devices_needed; s < ix + ix_offset; s++)
+					for (s = devices_needed; s < ix + alloc_state->num_positional_areas; s++)
 						if (alloc_state->areas[s].pva && alloc_state->areas[s].pva->map->pv == pvm->pv)
 							goto next_pv;
 				/* On a second pass, avoid PVs already used in an uncommitted area */
@@ -1927,8 +1934,8 @@ static int _find_some_parallel_space(struct alloc_handle *ah,
 					}
 
 					/* Reserve required amount of pva */
-					required = _calc_required_extents(ah, pva, ix + ix_offset - 1, max_to_allocate, alloc_parms->alloc);
-					if (!_reserve_required_area(ah, alloc_state, pva, required, ix + ix_offset - 1, pva->unreserved))
+					required = _calc_required_extents(ah, pva, ix + alloc_state->num_positional_areas - 1, max_to_allocate, alloc_parms->alloc);
+					if (!_reserve_required_area(ah, alloc_state, pva, required, ix + alloc_state->num_positional_areas - 1, pva->unreserved))
 						return_0;
 				}
 
@@ -1939,23 +1946,23 @@ static int _find_some_parallel_space(struct alloc_handle *ah,
 			/* With cling and contiguous we stop if we found a match for *all* the areas */
 			/* FIXME Rename these variables! */
 			if ((alloc_parms->alloc == ALLOC_ANYWHERE &&
-			    ix + ix_offset >= devices_needed + alloc_state->log_area_count_still_needed) ||
-			    (preferred_count == ix_offset &&
-			     (ix_offset == devices_needed + alloc_state->log_area_count_still_needed)))
+			    ix + alloc_state->num_positional_areas >= devices_needed + alloc_state->log_area_count_still_needed) ||
+			    (preferred_count == alloc_state->num_positional_areas &&
+			     (alloc_state->num_positional_areas == devices_needed + alloc_state->log_area_count_still_needed)))
 				break;
 		}
 	} while ((alloc_parms->alloc == ALLOC_ANYWHERE && last_ix != ix && ix < devices_needed + alloc_state->log_area_count_still_needed) ||
 		/* With cling_to_alloced and normal, if there were gaps in the preferred areas, have a second iteration */
 		 (alloc_parms->alloc == ALLOC_NORMAL && preferred_count &&
-		  (preferred_count < ix_offset || alloc_state->log_area_count_still_needed) &&
+		  (preferred_count < alloc_state->num_positional_areas || alloc_state->log_area_count_still_needed) &&
 		  (alloc_parms->flags & A_CLING_TO_ALLOCED) && !iteration_count++) ||
 		/* Extra iteration needed to fill log areas on PVs already used? */
-		 (alloc_parms->alloc == ALLOC_NORMAL && preferred_count == ix_offset && !ah->mirror_logs_separate &&
+		 (alloc_parms->alloc == ALLOC_NORMAL && preferred_count == alloc_state->num_positional_areas && !ah->mirror_logs_separate &&
 		  (ix + preferred_count >= devices_needed) &&
 		  (ix + preferred_count < devices_needed + alloc_state->log_area_count_still_needed) && !log_iteration_count++));
 
 	/* Non-zero ix means at least one USE_AREA was returned */
-	if (preferred_count < ix_offset && !(alloc_parms->flags & A_CLING_TO_ALLOCED) && !ix)
+	if (preferred_count < alloc_state->num_positional_areas && !(alloc_parms->flags & A_CLING_TO_ALLOCED) && !ix)
 		return 1;
 
 	if (ix + preferred_count < devices_needed + alloc_state->log_area_count_still_needed)
@@ -1970,17 +1977,17 @@ static int _find_some_parallel_space(struct alloc_handle *ah,
 		}
 	} else if (ix > 1) {
 		log_debug("Sorting %u areas", ix);
-		qsort(alloc_state->areas + ix_offset, ix, sizeof(*alloc_state->areas),
+		qsort(alloc_state->areas + alloc_state->num_positional_areas, ix, sizeof(*alloc_state->areas),
 		      _comp_area);
 	}
 
 	/* If there are gaps in our preferred areas, fill then from the sorted part of the array */
-	if (preferred_count && preferred_count != ix_offset) {
+	if (preferred_count && preferred_count != alloc_state->num_positional_areas) {
 		for (s = 0; s < devices_needed; s++)
 			if (!alloc_state->areas[s].pva) {
-				alloc_state->areas[s].pva = alloc_state->areas[ix_offset].pva;
-				alloc_state->areas[s].used = alloc_state->areas[ix_offset].used;
-				alloc_state->areas[ix_offset++].pva = NULL;
+				alloc_state->areas[s].pva = alloc_state->areas[alloc_state->num_positional_areas].pva;
+				alloc_state->areas[s].used = alloc_state->areas[alloc_state->num_positional_areas].used;
+				alloc_state->areas[alloc_state->num_positional_areas++].pva = NULL;
 			}
 	}
 	
@@ -1994,14 +2001,14 @@ static int _find_some_parallel_space(struct alloc_handle *ah,
 	/* FIXME This logic is due to its heritage and can be simplified! */
 	if (alloc_state->log_area_count_still_needed) {
 		/* How many areas are too small for the log? */
-		while (too_small_for_log_count < ix_offset + ix &&
-		       (*(alloc_state->areas + ix_offset + ix - 1 -
+		while (too_small_for_log_count < alloc_state->num_positional_areas + ix &&
+		       (*(alloc_state->areas + alloc_state->num_positional_areas + ix - 1 -
 			  too_small_for_log_count)).used < ah->log_len)
 			too_small_for_log_count++;
-		ix_log_offset = ix_offset + ix - too_small_for_log_count - ah->log_area_count;
+		ix_log_offset = alloc_state->num_positional_areas + ix - too_small_for_log_count - ah->log_area_count;
 	}
 
-	if (ix + ix_offset < devices_needed +
+	if (ix + alloc_state->num_positional_areas < devices_needed +
 	    (alloc_state->log_area_count_still_needed ? alloc_state->log_area_count_still_needed +
 				    too_small_for_log_count : 0))
 		return 1;
