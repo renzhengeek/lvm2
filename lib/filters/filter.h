@@ -35,6 +35,7 @@ struct dev_filter *lvm_type_filter_create(const char *proc,
 
 int dm_major(void);
 int md_major(void);
+int dasd_major(void);
 int blkext_major(void);
 int max_partitions(int major);
 int major_is_scsi_device(int major);
