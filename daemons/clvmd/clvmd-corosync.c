@@ -251,8 +251,12 @@ static void corosync_cpg_confchg_callback(cpg_handle_t handle,
 		ninfo = dm_hash_lookup_binary(node_hash,
 					      (char *)&left_list[i].nodeid,
 					      COROSYNC_CSID_LEN);
-		if (ninfo)
+		if (ninfo) {
 			ninfo->state = NODE_DOWN;
+			char name[MAX_CLUSTER_MEMBER_NAME_LEN];
+			sprintf(name, "%x", ninfo->nodeid);
+			decrease_inflight_expected_reply(name);
+		}
 	}
 
 	num_nodes = member_list_entries;
