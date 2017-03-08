@@ -103,6 +103,7 @@ const char *dev_name_confirmed(struct device *dev, int quiet);
 int dev_is_md(struct device *dev, uint64_t *sb);
 int dev_is_swap(struct device *dev, uint64_t *signature);
 int dev_is_luks(struct device *dev, uint64_t *signature);
+int dasd_is_cdl_formatted(struct device *dev);
 unsigned long dev_md_stripe_width(const char *sysfs_dir, struct device *dev);
 
 int is_partitioned_dev(struct device *dev);

@@ -93,7 +93,7 @@ int is_partitioned_dev(struct device *dev)
 		return 0;
 
 	/*Unpartitioned DASD devices are not supported*/
-	if (MAJOR(dev->dev) == dasd_major())
+	if ((MAJOR(dev->dev) == dasd_major()) && dasd_is_cdl_formatted(dev))
 		return 1;
 
 	return _has_partition_table(dev);
