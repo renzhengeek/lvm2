@@ -53,6 +53,8 @@
 
 #define ISLOCAL_CSID(c) (memcmp(c, our_csid, max_csid_len) == 0)
 
+#include <linux/limits.h>
+
 /* Head of the fd list. Also contains
    the cluster_socket details */
 static struct local_client local_client_head;
