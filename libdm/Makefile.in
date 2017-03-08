@@ -38,9 +38,7 @@ ifeq ("@VALGRIND_POOL@", "yes")
 INCLUDES += @VALGRIND_CFLAGS@
 endif
 
-ifeq ("@STATIC_LINK@", "yes")
 LIB_STATIC = $(interface)/libdevmapper.a
-endif
 
 LIB_SHARED = $(interface)/libdevmapper.$(LIB_SUFFIX)
 LIB_VERSION = $(LIB_VERSION_DM)
@@ -70,9 +68,7 @@ libdevmapper.$(LIB_SUFFIX) libdevmapper.$(LIB_SUFFIX).$(LIB_VERSION): $(LIB_SHAR
 
 INSTALL_TYPE = install_dynamic
 
-ifeq ("@STATIC_LINK@", "yes")
-  INSTALL_TYPE += install_static
-endif
+INSTALL_TYPE += install_static
 
 ifeq ("@PKGCONFIG@", "yes")
   INSTALL_TYPE += install_pkgconfig
