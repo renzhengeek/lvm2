@@ -1255,6 +1255,14 @@ cfg(activation_mode_CFG, "activation_mode", activation_CFG_SECTION, 0, CFG_TYPE_
 	"sometimes assist with data recovery.\n"
 	"The '--activationmode' option overrides this setting.\n")
 
+cfg(metadata_check_pv_device_sizes_CFG, "check_pv_device_sizes", metadata_CFG_SECTION, CFG_ADVANCED | CFG_DEFAULT_COMMENTED, CFG_TYPE_BOOL, 1, vsn(2, 2, 141), NULL, 0, NULL,
+	"Check device sizes are not smaller than corresponding PV sizes.\n"
+	"If device size is less than corresponding PV size found in metadata,\n"
+	"there is always a risk of data loss. If this option is set, then LVM\n"
+	"issues a warning message each time it finds that the device size is\n"
+	"less than corresponding PV size. You should not disable this unless\n"
+	"you are absolutely sure about what you are doing!\n")
+
 cfg(metadata_pvmetadatacopies_CFG, "pvmetadatacopies", metadata_CFG_SECTION, CFG_ADVANCED | CFG_DEFAULT_COMMENTED, CFG_TYPE_INT, DEFAULT_PVMETADATACOPIES, vsn(1, 0, 0), NULL, 0, NULL,
 	"Number of copies of metadata to store on each PV.\n"
 	"Possible options are: 0, 1, 2.\n"

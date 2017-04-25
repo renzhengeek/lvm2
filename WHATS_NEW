@@ -2,6 +2,7 @@ News for backported patches
 ==============================
   Fix lvm2-{activation,clvmd,cmirrord,monitor} service to exec before mounting.
   Warn if device size is less than corresponding PV size in metadata.
+  Add metadata/check_pv_device_sizes switch to lvm.conf for device size checks.
 
 Version 2.02.120 - 15th May 2015
 ================================

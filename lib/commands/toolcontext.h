@@ -83,6 +83,7 @@ struct cmd_context {
 	struct arg_values *arg_values;
 	struct dm_list arg_value_groups;
 	unsigned is_long_lived:1;	/* Optimises persistent_filter handling */
+	unsigned check_pv_dev_sizes:1;
 	unsigned handles_missing_pvs:1;
 	unsigned handles_unknown_segments:1;
 	unsigned use_linear_target:1;
