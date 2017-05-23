@@ -509,11 +509,14 @@ const char *do_lock_query(char *resource)
 int do_lock_lv(unsigned char command, unsigned char lock_flags, char *resource)
 {
 	int status = 0;
+	int do_refresh = 0;
 
 	DEBUGLOG("do_lock_lv: resource '%s', cmd = %s, flags = %s, critical_section = %d\n",
 		 resource, decode_locking_cmd(command), decode_flags(lock_flags), critical_section());
 
-	if (!cmd->initialized.config || config_files_changed(cmd)) {
+again:
+	if (!cmd->initialized.config || config_files_changed(cmd)
+	    || do_refresh) {
 		/* Reinitialise various settings inc. logging, filters */
 		if (do_refresh_cache()) {
 			log_error("Updated config file invalid. Aborting.");
@@ -578,6 +581,12 @@ int do_lock_lv(unsigned char command, unsigned char lock_flags, char *resource)
 	dm_pool_empty(cmd->mem);
 	init_test(0);
 	pthread_mutex_unlock(&lvm_lock);
+
+	/* Try again in case device cache is stale */
+	if (status == EIO && !do_refresh) {
+		do_refresh = 1;
+		goto again;
+	}
 
 	DEBUGLOG("Command return is %d, critical_section is %d\n", status, critical_section());
 	return status;
