@@ -91,6 +91,7 @@ static pthread_t lvm_thread;
 static const size_t STACK_SIZE = 128 * 1024;
 static pthread_attr_t stack_attr;
 static pthread_mutex_t lvm_thread_mutex;
+static pthread_mutex_t _debuglog_mutex;
 static pthread_cond_t lvm_thread_cond;
 static pthread_barrier_t lvm_start_barrier;
 static struct dm_list lvm_cmd_head;
@@ -215,14 +216,17 @@ void debuglog(const char *fmt, ...)
 
 	switch (clvmd_get_debug()) {
 	case DEBUG_STDERR:
+		pthread_mutex_lock(&_debuglog_mutex);
 		va_start(ap,fmt);
 		time(&P);
 		fprintf(stderr, "CLVMD[%x]: %.15s ", (int)pthread_self(), ctime(&P)+4 );
 		vfprintf(stderr, fmt, ap);
 		va_end(ap);
 		fflush(stderr);
+		pthread_mutex_unlock(&_debuglog_mutex);
 		break;
 	case DEBUG_SYSLOG:
+		pthread_mutex_lock(&_debuglog_mutex);
 		if (!syslog_init) {
 			openlog("clvmd", LOG_PID, LOG_DAEMON);
 			syslog_init = 1;
@@ -231,6 +235,7 @@ void debuglog(const char *fmt, ...)
 		va_start(ap,fmt);
 		vsyslog(LOG_DEBUG, fmt, ap);
 		va_end(ap);
+		pthread_mutex_unlock(&_debuglog_mutex);
 		break;
 	case DEBUG_OFF:
 		break;
@@ -514,6 +519,7 @@ int main(int argc, char *argv[])
 		exit(1);
 	}
 	pthread_mutex_init(&lvm_thread_mutex, NULL);
+	pthread_mutex_init(&_debuglog_mutex, NULL);
 	pthread_cond_init(&lvm_thread_cond, NULL);
 	pthread_barrier_init(&lvm_start_barrier, NULL, 2);
 	init_lvhash();
