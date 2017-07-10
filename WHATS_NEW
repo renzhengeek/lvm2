@@ -1,3 +1,7 @@
+Version 2.02.169 -
+=====================================
+  Avoid parallel usage of cpg_mcast_joined() in clvmd with corosync.
+
 Version 2.02.98 - 15th October 2012
 ===================================
   Switch from DEBUG() to DEBUGLOG() in lvmetad as -DDEBUG is already used.
