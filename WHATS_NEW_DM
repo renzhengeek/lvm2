@@ -1,6 +1,10 @@
-News within backported patches
-==============================
-  Fix dm-event systemd service to make sure it is executed before mounting.
+Version 1.02.142 -
+=================================
+  Create /dev/disk/by-part{uuid,label} and gpt-auto-root symlinks with udev.
+
+Version 1.02.110 - 30th October 2015
+====================================
+Fix dm-event systemd service to make sure it is executed before mounting.
 
 Version 1.02.97 - 15th May 2015
 ===============================
