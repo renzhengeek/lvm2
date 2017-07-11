@@ -14,14 +14,17 @@ ACTION!="add|change", GOTO="dm_end"
 ENV{DM_UDEV_RULES_VSN}!="?*", GOTO="dm_end"
 ENV{DM_UDEV_DISABLE_DISK_RULES_FLAG}=="1", GOTO="dm_end"
 
-SYMLINK+="disk/by-id/dm-name-$env{DM_NAME}"
-ENV{DM_UUID}=="?*", SYMLINK+="disk/by-id/dm-uuid-$env{DM_UUID}"
+SYMLINK+="disk/by-id/dm-name-$env{DM_NAME}", OPTIONS+="string_escape=replace"
+ENV{DM_UUID}=="?*", SYMLINK+="disk/by-id/dm-uuid-$env{DM_UUID}", OPTIONS+="string_escape=replace"
 
 ENV{DM_SUSPENDED}=="1", GOTO="dm_end"
 ENV{DM_NOSCAN}=="1", GOTO="dm_watch"
+ENV{DM_TARGET_TYPES}=="|*error*", GOTO="dm_end"
 
 (BLKID_RULE)
-ENV{DM_UDEV_LOW_PRIORITY_FLAG}=="1", OPTIONS="link_priority=-100"
+ENV{DM_UDEV_LOW_PRIORITY_FLAG}=="1", OPTIONS+="link_priority=-100"
+OPTIONS+="watch"
+ENV{DM_TARGET_TYPES}=="*snapshot-origin*", OPTIONS+="link_priority=-90"
 ENV{ID_FS_USAGE}=="filesystem|other|crypto", ENV{ID_FS_UUID_ENC}=="?*", SYMLINK+="disk/by-uuid/$env{ID_FS_UUID_ENC}"
 ENV{ID_FS_USAGE}=="filesystem|other", ENV{ID_FS_LABEL_ENC}=="?*", SYMLINK+="disk/by-label/$env{ID_FS_LABEL_ENC}"
 ENV{ID_PART_ENTRY_UUID}=="?*", SYMLINK+="disk/by-partuuid/$env{ID_PART_ENTRY_UUID}"
