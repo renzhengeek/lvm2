@@ -19,6 +19,7 @@
 #include <sys/stat.h>
 #include <time.h>
 #include <unistd.h>
+#include <pthread.h>
 
 #define BYTE_SHIFT 3
 
@@ -105,6 +106,9 @@ struct recovery_request {
 static DM_LIST_INIT(log_list);
 static DM_LIST_INIT(log_pending_list);
 
+static pthread_rwlock_t log_list_lock = PTHREAD_RWLOCK_INITIALIZER;
+static pthread_rwlock_t log_pending_lock = PTHREAD_RWLOCK_INITIALIZER;
+
 static int log_test_bit(dm_bitset_t bs, int bit)
 {
 	return dm_bit(bs, bit) ? 1 : 0;
@@ -151,11 +155,15 @@ static struct log_c *get_log(const char *uuid, uint64_t luid)
 {
 	struct log_c *lc;
 
+	pthread_rwlock_rdlock(&log_list_lock);
 	dm_list_iterate_items(lc, &log_list)
 		if (!strcmp(lc->uuid, uuid) &&
-		    (!luid || (luid == lc->luid)))
+		    (!luid || (luid == lc->luid))) {
+			pthread_rwlock_unlock(&log_list_lock);
 			return lc;
+		}
 
+	pthread_rwlock_unlock(&log_list_lock);
 	return NULL;
 }
 
@@ -171,10 +179,14 @@ static struct log_c *get_pending_log(const char *uuid, uint64_t luid)
 {
 	struct log_c *lc;
 
+	pthread_rwlock_rdlock(&log_pending_lock);
 	dm_list_iterate_items(lc, &log_pending_list)
 		if (!strcmp(lc->uuid, uuid) &&
-		    (!luid || (luid == lc->luid)))
+		    (!luid || (luid == lc->luid))) {
+			pthread_rwlock_unlock(&log_pending_lock);
 			return lc;
+		}
+	pthread_rwlock_unlock(&log_pending_lock);
 
 	return NULL;
 }
@@ -519,7 +531,9 @@ static int _clog_ctr(char *uuid, uint64_t luid, uint32_t version,
 		LOG_DBG("Disk log ready");
 	}
 
+	pthread_rwlock_wrlock(&log_pending_lock);
 	dm_list_add(&log_pending_list, &lc->list);
+	pthread_rwlock_unlock(&log_pending_lock);
 
 	return 0;
 fail:
@@ -643,7 +657,10 @@ static int clog_dtr(struct dm_ulog_request *rq)
 
 	LOG_DBG("[%s] Cluster log removed", SHORT_UUID(lc->uuid));
 
+	pthread_rwlock_wrlock(&log_list_lock);
 	dm_list_del(&lc->list);
+	pthread_rwlock_unlock(&log_list_lock);
+
 	if (lc->disk_fd != -1 && close(lc->disk_fd))
 		LOG_ERROR("Failed to close disk log: %s",
 			  strerror(errno));
@@ -715,8 +732,13 @@ int cluster_postsuspend(char *uuid, uint64_t luid)
 	lc->resume_override = 0;
 
 	/* move log to pending list */
+	pthread_rwlock_wrlock(&log_list_lock);
 	dm_list_del(&lc->list);
+	pthread_rwlock_unlock(&log_list_lock);
+
+	pthread_rwlock_wrlock(&log_pending_lock);
 	dm_list_add(&log_pending_list, &lc->list);
+	pthread_rwlock_unlock(&log_pending_lock);
 
 	return 0;
 }
@@ -820,9 +842,9 @@ no_disk:
 	if (commit_log && (lc->disk_fd >= 0)) {
 		rq->error = write_log(lc);
 		if (rq->error)
-			LOG_ERROR("Failed initial disk log write");
+			LOG_ERROR("[%s] Failed initial disk log write", SHORT_UUID(lc->uuid));
 		else
-			LOG_DBG("Disk log initialized");
+			LOG_DBG("[%s] Disk log initialized", SHORT_UUID(lc->uuid));
 		lc->touched = 0;
 	}
 out:
@@ -904,8 +926,13 @@ int local_resume(struct dm_ulog_request *rq)
 		}
 
 		/* move log to official list */
+		pthread_rwlock_wrlock(&log_pending_lock);
 		dm_list_del(&lc->list);
+		pthread_rwlock_unlock(&log_pending_lock);
+
+		pthread_rwlock_wrlock(&log_list_lock);
 		dm_list_add(&log_list, &lc->list);
+		pthread_rwlock_unlock(&log_list_lock);
 	}
 
 	return 0;
@@ -1928,7 +1955,6 @@ void log_debug(void)
 
 	LOG_ERROR("");
 	LOG_ERROR("LOG COMPONENT DEBUGGING::");
-	LOG_ERROR("Official log list:");
 	LOG_ERROR("Pending log list:");
 	dm_list_iterate_items(lc, &log_pending_list) {
 		LOG_ERROR("%s", lc->uuid);
@@ -1938,6 +1964,7 @@ void log_debug(void)
 		print_bits(lc->clean_bits, 1);
 	}
 
+	LOG_ERROR("Official log list:");
 	dm_list_iterate_items(lc, &log_list) {
 		LOG_ERROR("%s", lc->uuid);
 		LOG_ERROR("  recoverer        : %" PRIu32, lc->recoverer);
