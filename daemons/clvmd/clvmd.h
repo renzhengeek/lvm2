@@ -110,6 +110,8 @@ extern int do_post_command(struct local_client *client);
 extern void cmd_client_cleanup(struct local_client *client);
 extern int add_client(struct local_client *new_client);
 
+
+extern void decrease_inflight_expected_reply(const char *nodename);
 extern void clvmd_cluster_init_completed(void);
 extern void process_message(struct local_client *client, char *buf,
 			    int len, const char *csid);

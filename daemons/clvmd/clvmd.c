@@ -1614,6 +1614,57 @@ static void process_remote_command(struct clvm_header *msg, int msglen, int fd,
 	dm_free(replyargs);
 }
 
+void decrease_inflight_expected_reply(const char *nodename)
+{
+	struct local_client *thisfd;
+	struct node_reply *reply;
+
+	DEBUGLOG("remote node %s down", nodename);
+
+	for (thisfd = &local_client_head; thisfd != NULL;
+	     thisfd = thisfd->next) {
+		/* in-flight request */
+		if (thisfd->type == LOCAL_SOCK &&
+		    thisfd->bits.localsock.sent_out &&
+		    thisfd->bits.localsock.in_progress &&
+		    !thisfd->bits.localsock.finished &&
+		    thisfd->bits.localsock.expected_replies >
+		      thisfd->bits.localsock.num_replies) {
+
+			pthread_mutex_lock(&thisfd->bits.localsock.mutex);
+
+			reply = thisfd->bits.localsock.replies;
+			while (reply && strcmp(reply->node, nodename) != 0) {
+				reply = reply->next;
+			}
+			/*
+			 * if the remote down server has replies,
+			 * do not decrease the expected_replies
+			 */
+			if (reply)
+				continue;
+
+			thisfd->bits.localsock.expected_replies--;
+			DEBUGLOG("remote node down, decrement the expected replies to (%d), num_replies(%d)",
+			     thisfd->bits.localsock.expected_replies,
+			     thisfd->bits.localsock.num_replies);
+
+			if (thisfd->bits.localsock.expected_replies <=
+			    thisfd->bits.localsock.num_replies) {
+				/* tell pre_and_post thread to finish */
+				if (thisfd->bits.localsock.threadid) {
+					thisfd->bits.localsock.all_success = 0;
+					pthread_mutex_lock(&thisfd->bits.localsock.mutex);
+					thisfd->bits.localsock.state = POST_COMMAND;
+					pthread_cond_signal(&thisfd->bits.localsock.cond);
+					pthread_mutex_unlock(&thisfd->bits.localsock.mutex);
+				}
+			}
+			pthread_mutex_unlock(&thisfd->bits.localsock.mutex);
+		}
+	}
+}
+
 /* Add a reply to a command to the list of replies for this client.
    If we have got a full set then send them to the waiting client down the local
    socket */
@@ -1653,7 +1704,7 @@ static void add_reply_to_list(struct local_client *client, int status,
 
 		/* If we have the whole lot then do the post-process */
 		/* Post-process the command */
-		if (++client->bits.localsock.num_replies ==
+		if (++client->bits.localsock.num_replies >=
 		    client->bits.localsock.expected_replies) {
 			client->bits.localsock.state = POST_COMMAND;
 			pthread_cond_signal(&client->bits.localsock.cond);
