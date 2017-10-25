@@ -16,7 +16,8 @@ lvscan \(em scan (all disks) for Logical Volumes
 lvscan scans all known volume groups or all supported LVM block devices
 in the system for defined Logical Volumes.  The output consists
 of one line for each Logical Volume indicating whether or not it is active,
-a snapshot or origin, the size of the device and its allocation policy.
+a snapshot or origin, the size of the device and its allocation policy when
+it is not in silent mode.
 Use \fBlvs\fP(8) or \fBlvdisplay\fP(8) to obtain more-comprehensive
 information about the Logical Volumes.
 .SH OPTIONS
