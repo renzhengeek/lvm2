@@ -362,7 +362,7 @@ static int find_disk_path(char *major_minor_str, char *path_rtn, int *unlink_pat
 	// return r ? -errno : 0;
 }
 
-static int _clog_ctr(char *uuid, uint64_t luid,
+static int _clog_ctr(char *uuid, uint64_t luid, uint32_t version,
 		     int argc, char **argv, uint64_t device_size)
 {
 	int i;
@@ -431,6 +431,8 @@ static int _clog_ctr(char *uuid, uint64_t luid,
 			log_sync = NOSYNC;
 		else if (!strcmp(argv[i], "block_on_error"))
 			block_on_error = 1;
+		else if (!strcmp(argv[i], "integrated_flush") && version > 2)
+			LOG_PRINT("support integrated_flush");
 	}
 
 	lc = dm_zalloc(sizeof(*lc));
@@ -594,7 +596,7 @@ static int clog_ctr(struct dm_ulog_request *rq)
 		return -EINVAL;
 	}
 
-	r = _clog_ctr(rq->uuid, rq->luid, argc - 1, argv + 1, device_size);
+	r = _clog_ctr(rq->uuid, rq->luid, rq->version, argc - 1, argv + 1, device_size);
 
 	/* We join the CPG when we resume */
 
@@ -1026,12 +1028,14 @@ static int clog_in_sync(struct dm_ulog_request *rq)
 	return 0;
 }
 
+static int _clog_mark_region(struct log_c * lc, struct dm_ulog_request *rq, uint32_t originator);
+
 /*
  * clog_flush
  * @rq
  *
  */
-static int clog_flush(struct dm_ulog_request *rq, int server)
+static int clog_flush(struct dm_ulog_request *rq, uint32_t originator, int server)
 {
 	int r = 0;
 	struct log_c *lc = get_log(rq->uuid, rq->luid);
@@ -1041,6 +1045,15 @@ static int clog_flush(struct dm_ulog_request *rq, int server)
 
 	if (!lc->touched)
 		return 0;
+
+	/* flush has payload to mark region */
+	if(rq->data_size) {
+		r = _clog_mark_region(lc, rq, originator);
+		if (r) {
+			LOG_ERROR("mark region failed in integrated flush");
+			return r;
+		}
+	}
 
 	/*
 	 * Do the actual flushing of the log only
@@ -1104,25 +1117,11 @@ static int mark_region(struct log_c *lc, uint64_t region, uint32_t who)
 	return 0;
 }
 
-/*
- * clog_mark_region
- * @rq
- *
- * rq may contain more than one mark request.  We
- * can determine the number from the 'data_size' field.
- *
- * Returns: 0 on success, -EXXX on failure
- */
-static int clog_mark_region(struct dm_ulog_request *rq, uint32_t originator)
+static int _clog_mark_region(struct log_c * lc, struct dm_ulog_request *rq, uint32_t originator)
 {
 	int r;
 	int count;
 	uint64_t *region;
-	struct log_c *lc = get_log(rq->uuid, rq->luid);
-
-	if (!lc)
-		return -EINVAL;
-
 	if (rq->data_size % sizeof(uint64_t)) {
 		LOG_ERROR("Bad data size given for mark_region request");
 		return -EINVAL;
@@ -1140,6 +1139,25 @@ static int clog_mark_region(struct dm_ulog_request *rq, uint32_t originator)
 	rq->data_size = 0;
 
 	return 0;
+}
+
+/*
+ * clog_mark_region
+ * @rq
+ *
+ * rq may contain more than one mark request.  We
+ * can determine the number from the 'data_size' field.
+ *
+ * Returns: 0 on success, -EXXX on failure
+ */
+static int clog_mark_region(struct dm_ulog_request *rq, uint32_t originator)
+{
+	struct log_c *lc = get_log(rq->uuid, rq->luid);
+
+	if (!lc)
+		return -EINVAL;
+
+	return _clog_mark_region(lc, rq, originator);
 }
 
 static int clear_region(struct log_c *lc, uint64_t region, uint32_t who)
@@ -1673,7 +1691,7 @@ int do_request(struct clog_request *rq, int server)
 		r = clog_in_sync(&rq->u_rq);
 		break;
 	case DM_ULOG_FLUSH:
-		r = clog_flush(&rq->u_rq, server);
+		r = clog_flush(&rq->u_rq, rq->originator, server);
 		break;
 	case DM_ULOG_MARK_REGION:
 		r = clog_mark_region(&rq->u_rq, rq->originator);
