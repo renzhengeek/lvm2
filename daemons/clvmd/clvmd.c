@@ -2169,10 +2169,8 @@ static int check_local_clvmd(void)
 	}
 
 	if (connect(local_socket,(struct sockaddr *) &sockaddr,
-		    sizeof(sockaddr))) {
-		log_sys_error("connect", "local socket");
+		    sizeof(sockaddr)))
 		ret = -1;
-	}
 
 	if (close(local_socket))
 		log_sys_error("close", "local socket");
