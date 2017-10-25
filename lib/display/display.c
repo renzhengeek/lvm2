@@ -462,10 +462,15 @@ int lvdisplay_full(struct cmd_context *cmd,
 			  lv->vg->cmd->dev_dir, lv->vg->name, lv->name);
 	else if (lv_is_visible(lv)) {
 		/* Thin pool does not have /dev/vg/name link */
-		if (!lv_is_thin_pool(lv))
-			log_print("LV Path                %s%s/%s",
-				  lv->vg->cmd->dev_dir,
-				  lv->vg->name, lv->name);
+		if (!lv_is_thin_pool(lv)) {
+			if (find_config_tree_bool(cmd, global_display_dm_name_for_lv_name_CFG, NULL)) {
+				log_print("LV Path                %smapper/%s-%s", lv->vg->cmd->dev_dir,
+					  lv->vg->name, lv->name);
+			} else {
+				log_print("LV Path                %s%s/%s", lv->vg->cmd->dev_dir,
+					  lv->vg->name, lv->name);
+			}
+		}
 		log_print("LV Name                %s", lv->name);
 	} else
 		log_print("Internal LV Name       %s", lv->name);
