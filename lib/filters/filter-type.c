@@ -14,7 +14,7 @@
  */
 #include <sys/ioctl.h>
 #define _LINUX_AUDIT_H_
-#include <linux/fs.h>
+#include <sys/mount.h>
 #undef MAJOR
 #undef MINOR
 #undef MKDEV

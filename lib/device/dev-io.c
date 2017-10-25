@@ -31,7 +31,7 @@
 #  undef WNOHANG		/* Avoid redefinition */
 #  undef WUNTRACED		/* Avoid redefinition */
 #  define _LINUX_AUDIT_H_       /* Avoid inclusion */
-#  include <linux/fs.h>		/* For block ioctl definitions */
+#  include <sys/mount.h>	/* For block ioctl definitions */
 #  define BLKSIZE_SHIFT SECTOR_SHIFT
 #  ifndef BLKGETSIZE64		/* fs.h out-of-date */
 #    define BLKGETSIZE64 _IOR(0x12, 114, size_t)
