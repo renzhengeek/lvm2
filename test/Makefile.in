@@ -174,7 +174,7 @@ install: .tests-stamp lib/paths-installed
 	$(INSTALL_DIR) $(DATADIR)/{shell,api,lib}
 	$(INSTALL_DATA) shell/*.sh $(DATADIR)/shell/
 	$(INSTALL_DATA) api/*.sh $(DATADIR)/api/
-	$(INSTALL_PROGRAM) api/*.{t,py} $(DATADIR)/api/
+	$(INSTALL_PROGRAM) api/*.py $(DATADIR)/api/
 	$(INSTALL_DATA) lib/paths-installed $(DATADIR)/lib/paths
 	$(INSTALL_DATA) $(LIB_FLAVOURS) $(DATADIR)/lib/
 	$(INSTALL_DATA) $(abs_top_srcdir)/conf/thin-performance.profile $(DATADIR)/lib/thin-performance.profile
@@ -183,6 +183,7 @@ install: .tests-stamp lib/paths-installed
 
 	$(INSTALL_DIR) $(EXECDIR)
 	$(INSTALL_PROGRAM) $(LIB_EXEC) $(EXECDIR)
+	$(INSTALL_PROGRAM) api/*.t $(EXECDIR)
 	$(INSTALL_PROGRAM) -D lib/runner $(bindir)/lvm2-testsuite
 
 lib/should: lib/not
