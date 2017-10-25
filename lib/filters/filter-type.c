@@ -12,6 +12,11 @@
  * along with this program; if not, write to the Free Software Foundation,
  * Inc., 59 Temple Place, Suite 330, Boston, MA  02111-1307  USA
  */
+#include <sys/ioctl.h>
+#include <linux/fs.h>
+#undef MAJOR
+#undef MINOR
+#undef MKDEV
 
 #include "lib.h"
 #include "filter.h"
@@ -27,6 +32,13 @@ static int _passes_lvm_type_device_filter(struct dev_filter *f, struct device *d
 			       PRIu64, name, (uint64_t) MAJOR(dev->dev));
 		return 0;
 	}
+
+       /* Skip cdrom device */
+       #define CDROM_GET_CAPABILITY   0x5331
+       if (ioctl(dev->fd, CDROM_GET_CAPABILITY) >= 0) {
+               log_debug_devs("%s: Skipping: cdrom device", name );
+               return 0;
+       }
 
 	return 1;
 }
