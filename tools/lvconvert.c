@@ -2101,10 +2101,12 @@ static int _lvconvert_merge_thin_snapshot(struct cmd_context *cmd,
 	int origin_is_active = 0, r = 0;
 	struct lv_segment *snap_seg = first_seg(lv);
 	struct logical_volume *origin = snap_seg->origin;
+	const char *origin_name = display_lvname(origin);
+	const char *snap_name = display_lvname(lv);
 
 	if (!origin) {
 		log_error("%s is not a mergeable logical volume.",
-			  display_lvname(lv));
+			  snap_name);
 		return 0;
 	}
 
@@ -2118,16 +2120,16 @@ static int _lvconvert_merge_thin_snapshot(struct cmd_context *cmd,
 	if (lv_is_external_origin(origin)) {
 		if (!(origin = origin_from_cow(lv)))
 			log_error(INTERNAL_ERROR "%s is missing origin.",
-				  display_lvname(lv));
+				  snap_name);
 		else
 			log_error("%s is read-only external origin %s.",
-				  display_lvname(lv), display_lvname(origin));
+				  snap_name, origin_name);
 		return 0;
 	}
 
 	if (lv_is_origin(origin)) {
 		log_error("Merging into the old snapshot origin %s is not supported.",
-			  display_lvname(origin));
+			  origin_name);
 		return 0;
 	}
 
@@ -2155,7 +2157,7 @@ static int _lvconvert_merge_thin_snapshot(struct cmd_context *cmd,
 
 		if (origin_is_active && !activate_lv(cmd, lv)) {
 			log_error("Failed to reactivate origin %s.",
-				  display_lvname(lv));
+				  origin_name);
 			goto out;
 		}
 
@@ -2176,7 +2178,7 @@ out:
 	if (r)
 		log_print_unless_silent("Merging of thin snapshot %s will occur on "
 					"next activation of %s.",
-					display_lvname(lv), display_lvname(origin));
+					snap_name, origin_name);
 
 	return r;
 }
